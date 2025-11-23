@@ -114,17 +114,17 @@ public class ProductExpirationRenderer extends DefaultTableCellRenderer {
             Color colorTexto = Color.BLACK;
             
             if (diasRestantes < 0) {
-                // ❌ PRODUCTO VENCIDO
+                // PRODUCTO VENCIDO
                 colorFondo = COLOR_VENCIDO;
                 colorTexto = new Color(139, 0, 0); // Rojo oscuro para el texto
                 
             } else if (diasRestantes <= 30) {
-                // ⚠️ PRODUCTO PRÓXIMO A VENCER (30 días o menos)
+                // PRODUCTO PRÓXIMO A VENCER (30 días o menos)
                 colorFondo = COLOR_POR_VENCER;
                 colorTexto = new Color(139, 90, 0); // Naranja oscuro para el texto
                 
             } else {
-                // ✅ PRODUCTO EN BUEN ESTADO
+                // PRODUCTO EN BUEN ESTADO
                 colorFondo = COLOR_NORMAL;
                 colorTexto = new Color(0, 100, 0); // Verde oscuro para el texto
             }
@@ -152,8 +152,6 @@ public class ProductExpirationRenderer extends DefaultTableCellRenderer {
      */
     public static void main(String[] args) {
         System.out.println("=== DEMOSTRACIÓN DE COLORACIÓN DE PRODUCTOS ===\n");
-        
-        LocalDate hoy = LocalDate.now();
         
         // Simular productos con diferentes fechas
         System.out.println("Producto 1: Vencido hace 5 días -> COLOR ROJO");

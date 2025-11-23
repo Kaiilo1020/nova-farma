@@ -124,6 +124,37 @@ public class SaleDAO {
     }
     
     /**
+     * Obtiene ventas con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de ventas ordenadas por fecha (más reciente primero)
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<Sale> findAll(int limit, int offset) throws SQLException {
+        List<Sale> sales = new ArrayList<>();
+        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+                     "FROM ventas ORDER BY fecha_venta DESC LIMIT ? OFFSET ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, limit);
+            pstmt.setInt(2, offset);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Sale sale = mapResultSetToSale(rs);
+                    sales.add(sale);
+                }
+            }
+        }
+        
+        return sales;
+    }
+    
+    /**
      * Obtiene ventas de un usuario específico
      * 
      * @param usuarioId ID del usuario

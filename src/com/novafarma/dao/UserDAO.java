@@ -6,7 +6,9 @@ import com.novafarma.util.DatabaseConnection;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Data Access Object (DAO) para la entidad User
@@ -121,6 +123,89 @@ public class UserDAO {
     }
     
     /**
+     * Obtiene usuarios con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de usuarios ordenados por ID
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<User> findAll(int limit, int offset) throws SQLException {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT id, username, password_hash, rol FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, limit);
+            pstmt.setInt(2, offset);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    User user = mapResultSetToUser(rs);
+                    users.add(user);
+                }
+            }
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Cuenta el número total de usuarios
+     * 
+     * @return Número total de usuarios
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countAll() throws SQLException {
+        String sql = "SELECT COUNT(*) as total FROM usuarios";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Obtiene todos los usuarios con el conteo de ventas en una sola query
+     * OPTIMIZACIÓN: Evita el problema N+1 usando LEFT JOIN
+     * 
+     * @return Map donde la clave es el ID del usuario y el valor es el conteo de ventas
+     * @throws SQLException Si hay error en la consulta
+     */
+    public Map<Integer, Integer> findAllWithSalesCount() throws SQLException {
+        Map<Integer, Integer> salesCountMap = new HashMap<>();
+        
+        // Query optimizada: LEFT JOIN para traer usuarios y conteo de ventas en una sola consulta
+        String sql = "SELECT u.id, u.username, u.password_hash, u.rol, " +
+                     "COALESCE(COUNT(v.id), 0) as ventas_count " +
+                     "FROM usuarios u " +
+                     "LEFT JOIN ventas v ON u.id = v.usuario_id " +
+                     "GROUP BY u.id, u.username, u.password_hash, u.rol " +
+                     "ORDER BY u.id ASC";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                int userId = rs.getInt("id");
+                int salesCount = rs.getInt("ventas_count");
+                salesCountMap.put(userId, salesCount);
+            }
+        }
+        
+        return salesCountMap;
+    }
+    
+    /**
      * Crea un nuevo usuario
      * 
      * IMPORTANTE: La contraseña debe venir ya hasheada (SHA-256)
@@ -165,13 +250,15 @@ public class UserDAO {
     }
     
     /**
-     * Actualiza el rol de un usuario
+     * Actualiza el rol de un usuario (NO USADO)
      * 
+     * @deprecated No se usa en la aplicación actual
      * @param userId ID del usuario
      * @param newRole Nuevo rol
      * @return true si la actualización fue exitosa
      * @throws SQLException Si hay error en la actualización
      */
+    @Deprecated
     public boolean updateRole(int userId, UserRole newRole) throws SQLException {
         String sql = "UPDATE usuarios SET rol = ?::user_role WHERE id = ?";
         
@@ -230,12 +317,14 @@ public class UserDAO {
     }
     
     /**
-     * Cuenta el número de usuarios por rol
+     * Cuenta el número de usuarios por rol (NO USADO)
      * 
+     * @deprecated No se usa en la aplicación actual
      * @param role Rol a contar
      * @return Número de usuarios con ese rol
      * @throws SQLException Si hay error en la consulta
      */
+    @Deprecated
     public int countByRole(UserRole role) throws SQLException {
         String sql = "SELECT COUNT(*) as total FROM usuarios WHERE rol = ?::user_role";
         

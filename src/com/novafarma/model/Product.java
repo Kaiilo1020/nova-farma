@@ -27,7 +27,7 @@ public class Product {
     private Date fechaVencimiento;
     private boolean activo;
     
-    // ==================== CONSTRUCTORES ====================
+    // Constructores
     
     /**
      * Constructor vacío
@@ -63,7 +63,7 @@ public class Product {
         this.activo = true;
     }
     
-    // ==================== LÓGICA DE NEGOCIO ====================
+    // Lógica de negocio
     
     /**
      * Verifica si el producto está vencido
@@ -102,7 +102,7 @@ public class Product {
      */
     public long getDaysUntilExpiration() {
         if (fechaVencimiento == null) {
-            return Long.MAX_VALUE; // Sin vencimiento
+            return Long.MAX_VALUE;
         }
         LocalDate today = LocalDate.now();
         LocalDate expirationDate = fechaVencimiento.toLocalDate();
@@ -141,7 +141,7 @@ public class Product {
         return this.activo && !isExpired() && hasStock();
     }
     
-    // ==================== GETTERS Y SETTERS ====================
+    // Getters y Setters
     
     public int getId() {
         return id;
@@ -199,7 +199,7 @@ public class Product {
         this.activo = activo;
     }
     
-    // ==================== MÉTODOS DE OBJETO ====================
+    // Métodos de objeto
     
     @Override
     public String toString() {

@@ -4,6 +4,7 @@ import com.novafarma.model.Product;
 import com.novafarma.model.User;
 import com.novafarma.service.ProductService;
 import com.novafarma.ui.ProductExpirationRenderer;
+import com.novafarma.util.TableStyleHelper;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -62,14 +63,14 @@ public class AlertsPanel extends JPanel {
         // Panel superior: Título y botones
         JPanel topPanel = new JPanel(new BorderLayout());
         
-        JLabel lblTitulo = new JLabel("⚠️ ALERTAS DE VENCIMIENTO");
+        JLabel lblTitulo = new JLabel("ALERTAS DE VENCIMIENTO");
         lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitulo.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         // Panel de botones
         JPanel btnPanelAlertas = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         
-        btnEliminarVencidos = new JButton("❌ Retirar Vencidos");
+        btnEliminarVencidos = new JButton("Retirar Vencidos");
         btnEliminarVencidos.setFont(new Font("Arial", Font.PLAIN, 12));
         btnEliminarVencidos.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnEliminarVencidos.setToolTipText("Desactiva productos vencidos (NO los elimina de la BD)");
@@ -77,7 +78,7 @@ public class AlertsPanel extends JPanel {
             if (onEliminarVencidos != null) onEliminarVencidos.run();
         });
         
-        JButton btnRefreshAlertas = new JButton("🔄 Actualizar");
+        JButton btnRefreshAlertas = new JButton("Actualizar");
         btnRefreshAlertas.setFont(new Font("Arial", Font.PLAIN, 12));
         btnRefreshAlertas.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnRefreshAlertas.addActionListener(e -> cargarAlertas());
@@ -99,7 +100,7 @@ public class AlertsPanel extends JPanel {
         };
         
         tableAlertas = new JTable(modelAlertas);
-        applyTableStyle(tableAlertas);
+        TableStyleHelper.applyTableStyle(tableAlertas);
         
         // Renderer de alertas visuales
         ProductExpirationRenderer alertRenderer = new ProductExpirationRenderer(3);
@@ -122,7 +123,7 @@ public class AlertsPanel extends JPanel {
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JLabel lblInfo = new JLabel("🔴 Vencido  |  🟠 Vence en ≤ 30 días  |  Ambos roles pueden ver estas alertas");
+        JLabel lblInfo = new JLabel("Vencido (Rojo)  |  Vence en ≤ 30 días (Naranja)  |  Ambos roles pueden ver estas alertas");
         lblInfo.setFont(new Font("Arial", Font.PLAIN, 11));
         infoPanel.add(lblInfo);
         
@@ -146,11 +147,11 @@ public class AlertsPanel extends JPanel {
                 
                 String estado;
                 if (diasRestantes < 0) {
-                    estado = "❌ VENCIDO (" + Math.abs(diasRestantes) + " días atrás)";
+                    estado = "VENCIDO (" + Math.abs(diasRestantes) + " días atrás)";
                 } else if (diasRestantes == 0) {
-                    estado = "⚠️ VENCE HOY";
+                    estado = "VENCE HOY";
                 } else {
-                    estado = "⚠️ Por vencer";
+                    estado = "Por vencer";
                 }
                 
                 Object[] row = {
@@ -168,7 +169,7 @@ public class AlertsPanel extends JPanel {
             // Mostrar mensaje si no hay alertas
             if (products.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                    "✅ ¡Excelente!\n\n" +
+                    "¡Excelente!\n\n" +
                     "No hay productos vencidos ni próximos a vencer\n" +
                     "en los próximos 30 días.",
                     "Sin Alertas",
@@ -232,26 +233,5 @@ public class AlertsPanel extends JPanel {
         this.onEliminarVencidos = callback;
     }
     
-    // ==================== MÉTODO AUXILIAR ====================
-    
-    /**
-     * Aplica estilo limpio y profesional a las tablas
-     */
-    private void applyTableStyle(JTable table) {
-        table.setFont(new Font("Arial", Font.PLAIN, 12));
-        table.setRowHeight(28);
-        table.setGridColor(new Color(200, 200, 200));
-        table.setForeground(Color.BLACK);
-        table.setSelectionBackground(new Color(184, 207, 229));
-        table.setSelectionForeground(Color.BLACK);
-        
-        if (table.getTableHeader() != null) {
-            table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-            table.getTableHeader().setBackground(Color.WHITE);
-            table.getTableHeader().setForeground(Color.BLACK);
-            table.getTableHeader().setReorderingAllowed(false);
-            table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
-        }
-    }
 }
 

@@ -5,6 +5,8 @@ import com.novafarma.model.Sale;
 import com.novafarma.model.User;
 import com.novafarma.service.ProductService;
 import com.novafarma.service.SaleService;
+import com.novafarma.util.PaginationHelper;
+import com.novafarma.util.TableStyleHelper;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -56,6 +58,21 @@ public class SalesPanel extends JPanel {
     private JLabel lblTotal;
     private double totalVenta;
     
+    // Paginación del catálogo
+    private static final int PAGE_SIZE = PaginationHelper.DEFAULT_PAGE_SIZE;
+    private static final int PAGINATION_THRESHOLD = 100;
+    private int currentPage = 1;
+    private int totalRecords = 0;
+    private boolean paginationEnabled = false;
+    
+    // Controles de paginación
+    private JButton btnFirstPage;
+    private JButton btnPrevPage;
+    private JButton btnNextPage;
+    private JButton btnLastPage;
+    private JLabel lblPageInfo;
+    private JPanel paginationPanel;
+    
     // Callback para notificar finalización de venta (para recargar inventario)
     private Runnable onVentaFinalizada;
     
@@ -80,7 +97,7 @@ public class SalesPanel extends JPanel {
         
         JPanel facturacionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         facturacionPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("📋 Datos del Cliente / Comprobante"),
+            BorderFactory.createTitledBorder("Datos del Cliente / Comprobante"),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
@@ -126,13 +143,13 @@ public class SalesPanel extends JPanel {
         
         JPanel catalogoPanel = new JPanel(new BorderLayout(10, 10));
         catalogoPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("📦 Catálogo de Productos"),
+            BorderFactory.createTitledBorder("Catálogo de Productos"),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
         // Buscador
         JPanel searchPanel = new JPanel(new BorderLayout(5, 0));
-        JLabel lblBuscar = new JLabel("🔍 Buscar:");
+        JLabel lblBuscar = new JLabel("Buscar:");
         lblBuscar.setFont(new Font("Arial", Font.BOLD, 12));
         txtBuscador = new JTextField();
         txtBuscador.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -156,7 +173,7 @@ public class SalesPanel extends JPanel {
         };
         
         tableCatalogo = new JTable(modelCatalogo);
-        applyTableStyle(tableCatalogo);
+        TableStyleHelper.applyTableStyle(tableCatalogo);
         
         // Ajustar anchos de columnas
         tableCatalogo.getColumnModel().getColumn(0).setPreferredWidth(50);
@@ -167,15 +184,24 @@ public class SalesPanel extends JPanel {
         JScrollPane scrollCatalogo = new JScrollPane(tableCatalogo);
         catalogoPanel.add(scrollCatalogo, BorderLayout.CENTER);
         
+        // Panel inferior: Botón y paginación
+        JPanel bottomCatalogoPanel = new JPanel(new BorderLayout(5, 5));
+        
         // Botón Agregar al Carrito
         JPanel btnCatalogoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        JButton btnAgregar = new JButton("➕ Agregar al Carrito");
+        JButton btnAgregar = new JButton("Agregar al Carrito");
         btnAgregar.setFont(new Font("Arial", Font.PLAIN, 13));
         btnAgregar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnAgregar.addActionListener(e -> agregarAlCarrito());
         
         btnCatalogoPanel.add(btnAgregar);
-        catalogoPanel.add(btnCatalogoPanel, BorderLayout.SOUTH);
+        bottomCatalogoPanel.add(btnCatalogoPanel, BorderLayout.NORTH);
+        
+        // Panel de paginación
+        createPaginationPanel();
+        bottomCatalogoPanel.add(paginationPanel, BorderLayout.SOUTH);
+        
+        catalogoPanel.add(bottomCatalogoPanel, BorderLayout.SOUTH);
         
         splitPane.setLeftComponent(catalogoPanel);
         
@@ -183,7 +209,7 @@ public class SalesPanel extends JPanel {
         
         JPanel carritoPanel = new JPanel(new BorderLayout(10, 10));
         carritoPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("🛒 Carrito de Compras"),
+            BorderFactory.createTitledBorder("Carrito de Compras"),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         
@@ -197,7 +223,7 @@ public class SalesPanel extends JPanel {
         };
         
         tableCarrito = new JTable(modelCarrito);
-        applyTableStyle(tableCarrito);
+        TableStyleHelper.applyTableStyle(tableCarrito);
         
         // Ajustar anchos de columnas
         tableCarrito.getColumnModel().getColumn(0).setPreferredWidth(40);
@@ -234,12 +260,12 @@ public class SalesPanel extends JPanel {
         // Primera fila: Quitar y Limpiar
         JPanel fila1 = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         
-        JButton btnEliminarItem = new JButton("❌ Quitar");
+        JButton btnEliminarItem = new JButton("Quitar");
         btnEliminarItem.setFont(new Font("Arial", Font.PLAIN, 11));
         btnEliminarItem.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnEliminarItem.addActionListener(e -> quitarDelCarrito());
         
-        JButton btnLimpiar = new JButton("🗑️ Limpiar");
+        JButton btnLimpiar = new JButton("Limpiar");
         btnLimpiar.setFont(new Font("Arial", Font.PLAIN, 11));
         btnLimpiar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnLimpiar.addActionListener(e -> limpiarCarrito());
@@ -250,7 +276,7 @@ public class SalesPanel extends JPanel {
         // Segunda fila: Registrar Venta / Emitir Comprobante
         JPanel fila2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         
-        JButton btnFinalizar = new JButton("✅ Registrar Venta / Emitir Comprobante");
+        JButton btnFinalizar = new JButton("Registrar Venta / Emitir Comprobante");
         btnFinalizar.setFont(new Font("Arial", Font.BOLD, 13));
         btnFinalizar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnFinalizar.addActionListener(e -> finalizarVenta());
@@ -272,16 +298,83 @@ public class SalesPanel extends JPanel {
     // ==================== MÉTODOS DE ACCIÓN ====================
     
     /**
+     * Crea el panel de controles de paginación
+     */
+    private void createPaginationPanel() {
+        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        paginationPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        
+        btnFirstPage = new JButton("<< Primera");
+        applyButtonStyle(btnFirstPage);
+        btnFirstPage.addActionListener(e -> goToFirstPage());
+        
+        btnPrevPage = new JButton("< Anterior");
+        applyButtonStyle(btnPrevPage);
+        btnPrevPage.addActionListener(e -> goToPreviousPage());
+        
+        lblPageInfo = new JLabel("Página 1 de 1");
+        lblPageInfo.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        btnNextPage = new JButton("Siguiente >");
+        applyButtonStyle(btnNextPage);
+        btnNextPage.addActionListener(e -> goToNextPage());
+        
+        btnLastPage = new JButton("Última >>");
+        applyButtonStyle(btnLastPage);
+        btnLastPage.addActionListener(e -> goToLastPage());
+        
+        paginationPanel.add(btnFirstPage);
+        paginationPanel.add(btnPrevPage);
+        paginationPanel.add(lblPageInfo);
+        paginationPanel.add(btnNextPage);
+        paginationPanel.add(btnLastPage);
+        
+        paginationPanel.setVisible(false);
+    }
+    
+    private void applyButtonStyle(JButton button) {
+        button.setFont(new Font("Arial", Font.PLAIN, 11));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+    
+    /**
      * Carga productos activos en el catálogo de ventas
+     * OPTIMIZACIÓN: Usa paginación automática si hay más de PAGINATION_THRESHOLD registros
      */
     public void cargarCatalogo() {
         try {
+            // Contar total de productos vendibles (con stock > 0)
+            int totalVendibles = productService.countActiveProductsWithStock();
+            
+            // Activar paginación si hay muchos registros
+            if (totalVendibles > PAGINATION_THRESHOLD) {
+                paginationEnabled = true;
+                totalRecords = totalVendibles;
+                cargarCatalogoPaginated();
+            } else {
+                paginationEnabled = false;
+                cargarCatalogoCompleto();
+            }
+            
+            updatePaginationControls();
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error al cargar catálogo: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Carga todos los productos sin paginación
+     */
+    private void cargarCatalogoCompleto() {
+        try {
             modelCatalogo.setRowCount(0);
             
-            // Usar ProductService (ARQUITECTURA: Capa de Servicios)
             List<Product> products = productService.getAllActiveProducts();
             
-            // Filtrar solo productos con stock > 0 (vendibles)
             for (Product product : products) {
                 if (product.getStock() > 0) {
                     Object[] row = {
@@ -295,15 +388,93 @@ public class SalesPanel extends JPanel {
             }
             
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,
-                "Error al cargar catálogo: " + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
         }
     }
     
     /**
+     * Carga productos con paginación
+     */
+    private void cargarCatalogoPaginated() {
+        try {
+            modelCatalogo.setRowCount(0);
+            
+            int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
+            List<Product> products = productService.getActiveProductsPaginated(PAGE_SIZE, offset);
+            
+            for (Product product : products) {
+                if (product.getStock() > 0) {
+                    Object[] row = {
+                        product.getId(),
+                        product.getNombre(),
+                        String.format("$%.2f", product.getPrecio()),
+                        product.getStock()
+                    };
+                    modelCatalogo.addRow(row);
+                }
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Actualiza los controles de paginación
+     */
+    private void updatePaginationControls() {
+        if (!paginationEnabled) {
+            paginationPanel.setVisible(false);
+            return;
+        }
+        
+        paginationPanel.setVisible(true);
+        
+        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        currentPage = PaginationHelper.validatePageNumber(currentPage, totalPages);
+        
+        String range = PaginationHelper.getDisplayRange(currentPage, PAGE_SIZE, totalRecords);
+        lblPageInfo.setText(String.format("Página %d de %d (%s)", currentPage, totalPages, range));
+        
+        btnFirstPage.setEnabled(currentPage > 1);
+        btnPrevPage.setEnabled(currentPage > 1);
+        btnNextPage.setEnabled(currentPage < totalPages);
+        btnLastPage.setEnabled(currentPage < totalPages);
+    }
+    
+    private void goToFirstPage() {
+        currentPage = 1;
+        cargarCatalogoPaginated();
+        updatePaginationControls();
+    }
+    
+    private void goToPreviousPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            cargarCatalogoPaginated();
+            updatePaginationControls();
+        }
+    }
+    
+    private void goToNextPage() {
+        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        if (currentPage < totalPages) {
+            currentPage++;
+            cargarCatalogoPaginated();
+            updatePaginationControls();
+        }
+    }
+    
+    private void goToLastPage() {
+        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        currentPage = totalPages;
+        cargarCatalogoPaginated();
+        updatePaginationControls();
+    }
+    
+    /**
      * Filtra el catálogo según el texto del buscador
+     * NOTA: El filtro se aplica sobre los productos cargados en la página actual
      */
     private void filtrarCatalogo() {
         String filtro = txtBuscador.getText().toLowerCase().trim();
@@ -313,11 +484,19 @@ public class SalesPanel extends JPanel {
             return;
         }
         
+        // Filtrar sobre los productos ya cargados en la tabla
+        // Si hay paginación, solo filtra la página actual
+        modelCatalogo.setRowCount(0);
+        
         try {
-            modelCatalogo.setRowCount(0);
+            List<Product> products;
             
-            // Usar ProductService (ARQUITECTURA: Capa de Servicios)
-            List<Product> products = productService.getAllActiveProducts();
+            if (paginationEnabled) {
+                int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
+                products = productService.getActiveProductsPaginated(PAGE_SIZE, offset);
+            } else {
+                products = productService.getAllActiveProducts();
+            }
             
             // Filtrar por nombre (case-insensitive)
             for (Product product : products) {
@@ -572,15 +751,15 @@ public class SalesPanel extends JPanel {
         
         // Si hay errores, BLOQUEAR venta
         if (!errores.isEmpty()) {
-            StringBuilder mensaje = new StringBuilder("⚠️ NO SE PUEDE COMPLETAR LA VENTA ⚠️\n\n");
+            StringBuilder mensaje = new StringBuilder("NO SE PUEDE COMPLETAR LA VENTA\n\n");
             mensaje.append("Se encontraron los siguientes problemas:\n\n");
             for (String error : errores) {
                 mensaje.append(error).append("\n");
             }
             mensaje.append("\nVender productos vencidos es:\n");
-            mensaje.append("❌ Ilegal\n");
-            mensaje.append("❌ Peligroso para la salud del cliente\n");
-            mensaje.append("❌ Sujeto a sanciones legales\n\n");
+            mensaje.append("- Ilegal\n");
+            mensaje.append("- Peligroso para la salud del cliente\n");
+            mensaje.append("- Sujeto a sanciones legales\n\n");
             mensaje.append("¿Deseas ir al carrito para quitar los productos problemáticos?");
             
             int opcion = JOptionPane.showOptionDialog(this,
@@ -596,7 +775,7 @@ public class SalesPanel extends JPanel {
                 // Ya estamos en el panel de ventas, solo mostrar instrucción
                 JOptionPane.showMessageDialog(this,
                     "Selecciona los productos problemáticos en el carrito\n" +
-                    "y haz click en '❌ Quitar Seleccionado'.\n\n" +
+                    "y haz click en 'Quitar Seleccionado'.\n\n" +
                     "Luego, intenta finalizar la venta de nuevo.",
                     "Instrucciones",
                     JOptionPane.INFORMATION_MESSAGE);
@@ -640,7 +819,7 @@ public class SalesPanel extends JPanel {
         
         // Mostrar resultado con información de facturación
         if (result.isSuccess()) {
-            StringBuilder mensajeExito = new StringBuilder("✅ VENTA REGISTRADA EXITOSAMENTE\n\n");
+            StringBuilder mensajeExito = new StringBuilder("VENTA REGISTRADA EXITOSAMENTE\n\n");
             mensajeExito.append("Tipo de Comprobante: ").append(tipoComprobante).append("\n");
             if (!cliente.isEmpty()) {
                 mensajeExito.append("Cliente: ").append(cliente).append("\n");
@@ -706,26 +885,5 @@ public class SalesPanel extends JPanel {
         this.onVentaFinalizada = callback;
     }
     
-    // ==================== MÉTODO AUXILIAR ====================
-    
-    /**
-     * Aplica estilo limpio y profesional a las tablas
-     */
-    private void applyTableStyle(JTable table) {
-        table.setFont(new Font("Arial", Font.PLAIN, 12));
-        table.setRowHeight(28);
-        table.setGridColor(new Color(200, 200, 200));
-        table.setForeground(Color.BLACK);
-        table.setSelectionBackground(new Color(184, 207, 229));
-        table.setSelectionForeground(Color.BLACK);
-        
-        if (table.getTableHeader() != null) {
-            table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-            table.getTableHeader().setBackground(Color.WHITE);
-            table.getTableHeader().setForeground(Color.BLACK);
-            table.getTableHeader().setReorderingAllowed(false);
-            table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
-        }
-    }
 }
 

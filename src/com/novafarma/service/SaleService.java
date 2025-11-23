@@ -52,6 +52,19 @@ public class SaleService {
     }
     
     /**
+     * Obtiene ventas con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de ventas
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<Sale> getSalesPaginated(int limit, int offset) throws SQLException {
+        return saleDAO.findAll(limit, offset);
+    }
+    
+    /**
      * Obtiene ventas de un usuario específico
      * 
      * @param userId ID del usuario
@@ -183,17 +196,17 @@ public class SaleService {
                 
                 // Validar vencimiento
                 if (product.isExpired()) {
-                    errors.add("❌ " + product.getNombre() + " está VENCIDO. Debe retirarlo del carrito.");
+                    errors.add(product.getNombre() + " está VENCIDO. Debe retirarlo del carrito.");
                 }
                 
                 // Validar estado activo
                 if (!product.isActivo()) {
-                    errors.add("⚠️ " + product.getNombre() + " está inactivo");
+                    errors.add(product.getNombre() + " está inactivo");
                 }
                 
                 // Validar stock
                 if (!product.hasEnoughStock(sale.getCantidad())) {
-                    errors.add("⚠️ " + product.getNombre() + " - Stock insuficiente. " +
+                    errors.add(product.getNombre() + " - Stock insuficiente. " +
                              "Disponible: " + product.getStock() + ", Solicitado: " + sale.getCantidad());
                 }
             }

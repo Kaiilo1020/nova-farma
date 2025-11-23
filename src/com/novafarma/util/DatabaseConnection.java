@@ -1,5 +1,6 @@
 package com.novafarma.util;
 
+import com.novafarma.config.DatabaseConfig;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,30 +10,14 @@ import java.sql.SQLException;
  * 
  * PATRÓN DE DISEÑO: Singleton (una única instancia de conexión)
  * 
- * CONFIGURACIÓN NECESARIA:
- * - PostgreSQL instalado y ejecutándose en localhost:5432
- * - Base de datos creada: "nova_farma_db"
- * - Usuario: "postgres" (o el que hayas configurado)
- * - Contraseña: "tu_password" (DEBES CAMBIARLA)
+ * CONFIGURACIÓN:
+ * - La configuración de la base de datos está en DatabaseConfig.java
+ * - Modifica los valores en DatabaseConfig.java según tu instalación local
  * 
  * @author Nova Farma Development Team
- * @version 1.0
+ * @version 2.0 (Refactorizado: configuración separada)
  */
 public class DatabaseConnection {
-    
-    // ==================== CONFIGURACIÓN DE CONEXIÓN ====================
-    // IMPORTANTE: Modifica estos valores según tu instalación local de PostgreSQL
-    
-    private static final String DB_HOST = "localhost";
-    private static final String DB_PORT = "5432";
-    private static final String DB_NAME = "nova_farma_db";
-    private static final String DB_USER = "postgres";
-    private static final String DB_PASSWORD = "postgres"; // Probar con "postgres" primero
-    
-    // URL completa de conexión JDBC
-    private static final String DB_URL = String.format(
-        "jdbc:postgresql://%s:%s/%s", DB_HOST, DB_PORT, DB_NAME
-    );
     
     // ==================== PATRÓN SINGLETON ====================
     
@@ -62,10 +47,14 @@ public class DatabaseConnection {
             // Verificar si la conexión está cerrada o es nula
             if (connection == null || connection.isClosed()) {
                 // Cargar el driver de PostgreSQL (necesario en algunas versiones de Java)
-                Class.forName("org.postgresql.Driver");
+                Class.forName(DatabaseConfig.getDriverClass());
                 
-                // Establecer la conexión
-                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+                // Establecer la conexión usando configuración desde DatabaseConfig
+                connection = DriverManager.getConnection(
+                    DatabaseConfig.getConnectionUrl(),
+                    DatabaseConfig.DB_USER,
+                    DatabaseConfig.DB_PASSWORD
+                );
                 
                 System.out.println("✓ Conexión establecida con PostgreSQL");
             }
@@ -115,10 +104,10 @@ public class DatabaseConnection {
         System.out.println("=== PRUEBA DE CONEXIÓN A POSTGRESQL ===\n");
         
         try {
-            Connection conn = getConnection();
+            getConnection();
             System.out.println("Estado: Conectado exitosamente");
-            System.out.println("Base de datos: " + DB_NAME);
-            System.out.println("URL: " + DB_URL);
+            System.out.println("Base de datos: " + DatabaseConfig.DB_NAME);
+            System.out.println("URL: " + DatabaseConfig.getConnectionUrl());
             
             // Cerrar la conexión
             closeConnection();
@@ -128,9 +117,10 @@ public class DatabaseConnection {
             System.err.println("- Mensaje: " + e.getMessage());
             System.err.println("\nVERIFICA:");
             System.err.println("1. PostgreSQL está ejecutándose");
-            System.err.println("2. La base de datos '" + DB_NAME + "' existe");
+            System.err.println("2. La base de datos '" + DatabaseConfig.DB_NAME + "' existe");
             System.err.println("3. Usuario/contraseña son correctos");
             System.err.println("4. El driver postgresql-XX.X.jar está en el classpath");
+            System.err.println("\nNOTA: Modifica la configuración en DatabaseConfig.java");
         }
     }
 }

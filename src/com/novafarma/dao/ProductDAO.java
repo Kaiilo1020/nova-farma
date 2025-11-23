@@ -43,6 +43,79 @@ public class ProductDAO {
     }
     
     /**
+     * Obtiene productos activos con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de productos activos ordenados por ID
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<Product> findAllActive(int limit, int offset) throws SQLException {
+        List<Product> products = new ArrayList<>();
+        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+                     "FROM productos WHERE activo = TRUE ORDER BY id ASC LIMIT ? OFFSET ?";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, limit);
+            pstmt.setInt(2, offset);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Product product = mapResultSetToProduct(rs);
+                    products.add(product);
+                }
+            }
+        }
+        
+        return products;
+    }
+    
+    /**
+     * Cuenta el número total de productos activos
+     * 
+     * @return Número total de productos activos
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countAllActive() throws SQLException {
+        String sql = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Cuenta el número total de productos activos con stock > 0 (vendibles)
+     * 
+     * @return Número total de productos vendibles
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countActiveWithStock() throws SQLException {
+        String sql = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE AND stock > 0";
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        }
+        
+        return 0;
+    }
+    
+    /**
      * Obtiene todos los productos (activos e inactivos)
      * 
      * @return Lista de todos los productos
@@ -198,13 +271,15 @@ public class ProductDAO {
     }
     
     /**
-     * Elimina físicamente un producto (NO RECOMENDADO)
-     * Solo usar si no hay restricciones de clave foránea
+     * Elimina físicamente un producto (NO RECOMENDADO - NO USADO)
+     * Este método no se usa en la aplicación. Se prefiere soft delete (retireProduct).
      * 
+     * @deprecated No se usa. Usar softDelete() en su lugar.
      * @param id ID del producto
      * @return true si la eliminación fue exitosa
      * @throws SQLException Si hay error (ej: violación de FK)
      */
+    @Deprecated
     public boolean delete(int id) throws SQLException {
         String sql = "DELETE FROM productos WHERE id = ?";
         

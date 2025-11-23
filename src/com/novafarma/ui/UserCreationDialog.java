@@ -1,6 +1,5 @@
 package com.novafarma.ui;
 
-import com.novafarma.model.User.UserRole;
 import com.novafarma.util.DatabaseConnection;
 import com.novafarma.util.SecurityHelper;
 

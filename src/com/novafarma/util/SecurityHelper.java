@@ -89,8 +89,8 @@ public class SecurityHelper {
      * 1. Usuario ingresa contraseña: "admin123"
      * 2. Encriptamos esa contraseña: "240be518fabd2724..."
      * 3. Comparamos el hash generado con el hash guardado en la base de datos
-     * 4. Si son iguales → Contraseña correcta ✅
-     *    Si son diferentes → Contraseña incorrecta ❌
+     * 4. Si son iguales → Contraseña correcta
+     *    Si son diferentes → Contraseña incorrecta
      * 
      * EJEMPLO:
      * String hashEnBD = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";

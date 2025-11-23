@@ -6,6 +6,7 @@ import com.novafarma.model.User;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Servicio de lógica de negocio para Usuarios
@@ -41,6 +42,29 @@ public class UserService {
      */
     public List<User> getAllUsers() throws SQLException {
         return userDAO.findAll();
+    }
+    
+    /**
+     * Obtiene usuarios con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de usuarios
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<User> getUsersPaginated(int limit, int offset) throws SQLException {
+        return userDAO.findAll(limit, offset);
+    }
+    
+    /**
+     * Cuenta el número total de usuarios
+     * 
+     * @return Número total de usuarios
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countAllUsers() throws SQLException {
+        return userDAO.countAll();
     }
     
     /**
@@ -100,6 +124,17 @@ public class UserService {
     public int getSalesCount(int userId) throws SQLException {
         List<com.novafarma.model.Sale> sales = saleDAO.findByUserId(userId);
         return sales != null ? sales.size() : 0;
+    }
+    
+    /**
+     * Obtiene un mapa con el conteo de ventas para todos los usuarios
+     * OPTIMIZACIÓN: Una sola query en lugar de N queries (evita problema N+1)
+     * 
+     * @return Map donde la clave es el ID del usuario y el valor es el conteo de ventas
+     * @throws SQLException Si hay error en la consulta
+     */
+    public Map<Integer, Integer> getAllUsersSalesCount() throws SQLException {
+        return userDAO.findAllWithSalesCount();
     }
     
     /**

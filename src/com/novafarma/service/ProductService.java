@@ -41,6 +41,39 @@ public class ProductService {
     }
     
     /**
+     * Obtiene productos activos con paginación
+     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
+     * 
+     * @param limit Número máximo de registros a retornar
+     * @param offset Número de registros a saltar (para paginación)
+     * @return Lista de productos activos
+     * @throws SQLException Si hay error en la consulta
+     */
+    public List<Product> getActiveProductsPaginated(int limit, int offset) throws SQLException {
+        return productDAO.findAllActive(limit, offset);
+    }
+    
+    /**
+     * Cuenta el número total de productos activos
+     * 
+     * @return Número total de productos activos
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countActiveProducts() throws SQLException {
+        return productDAO.countAllActive();
+    }
+    
+    /**
+     * Cuenta el número total de productos activos con stock > 0 (vendibles)
+     * 
+     * @return Número total de productos vendibles
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countActiveProductsWithStock() throws SQLException {
+        return productDAO.countActiveWithStock();
+    }
+    
+    /**
      * Obtiene un producto por su ID
      * 
      * @param id ID del producto
@@ -95,7 +128,7 @@ public class ProductService {
         return productDAO.findExpired();
     }
     
-    // ==================== OPERACIONES CRUD ====================
+    // Operaciones CRUD
     
     /**
      * Crea un nuevo producto con validaciones de negocio
@@ -163,7 +196,7 @@ public class ProductService {
         return productDAO.softDeleteAllExpired();
     }
     
-    // ==================== VALIDACIONES DE NEGOCIO ====================
+    // Validaciones de negocio
     
     /**
      * Valida que un producto cumpla las reglas de negocio
@@ -188,9 +221,7 @@ public class ProductService {
             throw new IllegalArgumentException("El stock no puede ser negativo");
         }
         
-        if (product.getFechaVencimiento() == null) {
-            throw new IllegalArgumentException("La fecha de vencimiento es obligatoria");
-        }
+        // La fecha de vencimiento es opcional (algunos productos no tienen fecha de vencimiento)
     }
     
     /**
