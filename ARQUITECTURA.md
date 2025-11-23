@@ -50,10 +50,28 @@ com.novafarma/
 │
 ├── MainApp.java                    # Punto de entrada
 │
-├── model/                          # Modelos de datos
-│   └── User.java                   # Clase POJO de usuario
-│       ├── Atributos: id, username, passwordHash, rol
-│       └── Enum: UserRole (ADMINISTRADOR, TRABAJADOR)
+├── model/                          # Modelos de datos (POJOs)
+│   ├── User.java                   # Usuario con roles
+│   │   ├── Atributos: id, username, passwordHash, rol
+│   │   └── Enum: UserRole (ADMINISTRADOR, TRABAJADOR)
+│   ├── Product.java                # Producto del inventario
+│   └── Sale.java                   # Venta registrada
+│
+├── dao/                            # Data Access Object (Capa de Datos)
+│   ├── UserDAO.java                # CRUD de usuarios
+│   ├── ProductDAO.java             # CRUD de productos
+│   └── SaleDAO.java                # CRUD de ventas
+│
+├── service/                        # Lógica de Negocio (Capa de Servicios)
+│   ├── UserService.java            # Gestión y validación de usuarios
+│   │   ├── hasSales()              # Verifica si usuario tiene ventas
+│   │   ├── getSalesCount()         # Cuenta ventas del usuario
+│   │   └── deleteUser()            # Elimina usuario con validaciones
+│   ├── ProductService.java         # Validaciones y reglas de productos
+│   │   ├── findProductByName()     # Busca productos duplicados
+│   │   └── validateSellableProduct() # Valida producto para venta
+│   └── SaleService.java            # Procesamiento de ventas
+│       └── processMultipleSales()  # Transacciones atómicas
 │
 ├── util/                           # Utilidades
 │   ├── SecurityHelper.java         # Encriptación SHA-256
@@ -64,18 +82,27 @@ com.novafarma/
 │       ├── Patrón: Singleton
 │       └── getConnection()         # Retorna Connection
 │
-└── ui/                             # Interfaces gráficas
+└── ui/                             # Interfaces gráficas (Capa de Presentación)
     ├── LoginFrame.java             # Ventana de autenticación
     │   ├── performLogin()          # Login con SHA-256
     │   └── showPasswordRecovery()  # Recuperación de contraseña
     │
-    ├── Dashboard.java              # Panel principal
+    ├── Dashboard.java              # Panel principal (Coordinador)
     │   ├── applyRolePermissions()  # Control de acceso
-    │   ├── loadProductsData()      # Carga inventario
+    │   ├── createUsersPanel()     # Panel de gestión de usuarios
+    │   ├── loadUsersData()         # Carga tabla de usuarios
+    │   ├── deleteUser()            # Elimina usuario con validaciones
     │   └── Tabs: Inventario, Ventas, Usuarios, Alertas
     │
-    └── UserCreationDialog.java     # Crear usuarios
-        └── createUser()            # INSERT con hash
+    ├── UserCreationDialog.java     # Crear usuarios
+    │   └── createUser()            # INSERT con hash
+    │
+    ├── ProductExpirationRenderer.java # Alertas visuales (colores)
+    │
+    └── panels/                     # Paneles modulares (FASE B)
+        ├── InventoryPanel.java     # Panel de inventario
+        ├── SalesPanel.java         # Panel de ventas/facturación unificado
+        └── AlertsPanel.java        # Panel de alertas de vencimiento
 ```
 
 ---
@@ -222,6 +249,7 @@ com.novafarma/
 │ Editar producto  │     ✅    │    ❌     │
 │ Eliminar producto│     ✅    │    ❌     │
 │ Crear usuario    │     ✅    │    ❌     │
+│ Eliminar usuario │     ✅    │    ❌     │
 │ Registrar venta  │     ✅    │    ✅     │
 │ Ver alertas      │     ✅    │    ✅     │
 └──────────────────┴───────────┴───────────┘
@@ -528,8 +556,90 @@ Trabajador  Dashboard
 - **Funciones:** Login, Recuperación de contraseña
 
 ### Dashboard
-- **Responsabilidad:** Interfaz principal
-- **Funciones:** Control de roles, Gestión de inventario
+- **Responsabilidad:** Interfaz principal y coordinador
+- **Funciones:** Control de roles, Gestión de inventario, Gestión de usuarios
+- **Paneles modulares:** InventoryPanel, SalesPanel, AlertsPanel
+
+### UserService
+- **Responsabilidad:** Lógica de negocio para usuarios
+- **Funciones:** 
+  - `hasSales(userId)`: Verifica si usuario tiene ventas
+  - `getSalesCount(userId)`: Cuenta ventas del usuario
+  - `deleteUser(userId)`: Elimina usuario con validaciones
+
+### ProductService
+- **Responsabilidad:** Lógica de negocio para productos
+- **Funciones:**
+  - `findProductByName()`: Detecta productos duplicados
+  - `validateSellableProduct()`: Valida producto para venta
+
+### SaleService
+- **Responsabilidad:** Procesamiento de ventas
+- **Funciones:**
+  - `processMultipleSales()`: Transacciones atómicas
+  - `validateCart()`: Valida carrito antes de vender
+
+---
+
+## 👥 Gestión de Usuarios
+
+### Flujo de Eliminación de Usuario
+
+```
+┌─────────────┐
+│ Admin hace  │
+│ clic en     │
+│ "Eliminar"  │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────────────────────────┐
+│ 1. Validar selección            │
+│    ¿Usuario seleccionado?       │
+└─────────────┬───────────────────┘
+              │
+              ↓
+┌─────────────────────────────────┐
+│ 2. Validar que no sea          │
+│    el usuario actual            │
+│    if (userId == currentUser.id)│
+└─────────────┬───────────────────┘
+              │
+              ↓
+┌─────────────────────────────────┐
+│ 3. UserService.hasSales()       │
+│    ¿Tiene ventas?               │
+└─────────────┬───────────────────┘
+              │
+      ┌───────┴────────┐
+      │                │
+   Sí │                │ No
+      ↓                ↓
+┌──────────┐    ┌──────────────────┐
+│ Error:   │    │ 4. Confirmar     │
+│ "No se   │    │    eliminación   │
+│ puede    │    └─────────┬─────────┘
+│ eliminar │              │
+│ porque   │              ↓
+│ tiene    │    ┌──────────────────┐
+│ ventas"  │    │ 5. UserDAO.delete()│
+└──────────┘    │    DELETE FROM   │
+                │    usuarios      │
+                └─────────┬─────────┘
+                         │
+                         ↓
+                ┌──────────────────┐
+                │ 6. Recargar tabla│
+                │    loadUsersData()│
+                └──────────────────┘
+```
+
+### Validaciones Implementadas
+
+- ✅ **No eliminar usuario actual:** Previene auto-eliminación
+- ✅ **No eliminar usuarios con ventas:** Conserva historial del negocio
+- ✅ **Solo administradores:** Control de acceso por rol
+- ✅ **Mensajes descriptivos:** Explica por qué no se puede eliminar
 
 ---
 
@@ -541,17 +651,20 @@ Trabajador  Dashboard
    - Usar BCrypt en lugar de SHA-256 simple
    - Implementar salting (sal criptográfica)
    - Agregar HTTPS para conexiones remotas
+   - Implementar campo `activo` para usuarios (soft delete)
 
 2. **Arquitectura:**
-   - Separar la lógica de negocio en capa Service
-   - Implementar DAOs (Data Access Objects)
-   - Usar un framework como Spring
+   - ✅ **COMPLETADO:** Separar la lógica de negocio en capa Service
+   - ✅ **COMPLETADO:** Implementar DAOs (Data Access Objects)
+   - Usar un framework como Spring para inyección de dependencias
+   - Implementar patrón Repository
 
 3. **Funcionalidad:**
    - Reportes en PDF
    - Gráficos estadísticos
    - Sistema de backup automático
    - Logs de auditoría
+   - Historial de cambios en productos
 
 ---
 

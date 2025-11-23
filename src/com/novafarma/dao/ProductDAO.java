@@ -93,6 +93,41 @@ public class ProductDAO {
     }
     
     /**
+     * Busca un producto por su nombre (case-insensitive)
+     * 
+     * IMPORTANTE: Busca en TODOS los productos (activos e inactivos)
+     * para detectar duplicados incluso si el producto anterior está inactivo.
+     * 
+     * Si hay múltiples productos con el mismo nombre, retorna el más reciente
+     * (el que tiene el ID más alto, asumiendo que los IDs son auto-incrementales).
+     * 
+     * @param nombre Nombre del producto a buscar
+     * @return Product si se encuentra, null si no existe
+     * @throws SQLException Si hay error en la consulta
+     */
+    public Product findByName(String nombre) throws SQLException {
+        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+                     "FROM productos " +
+                     "WHERE LOWER(nombre) = LOWER(?) " +
+                     "ORDER BY id DESC " +  // Ordenar por ID descendente para obtener el más reciente
+                     "LIMIT 1";  // Solo tomar el primer resultado (el más reciente)
+        
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, nombre.trim());
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToProduct(rs);
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
      * Inserta un nuevo producto en la base de datos
      * 
      * @param product Producto a insertar

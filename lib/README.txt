@@ -6,7 +6,7 @@ Esta carpeta debe contener el driver JDBC de PostgreSQL.
 
 ARCHIVO REQUERIDO:
 ------------------
-postgresql-42.7.1.jar (o versión superior)
+postgresql-42.7.8.jar (o versión superior)
 
 DESCARGA:
 ---------
@@ -21,9 +21,9 @@ INSTRUCCIONES:
 
 VERSIONES COMPATIBLES:
 ----------------------
-- postgresql-42.7.1.jar (recomendada)
+- postgresql-42.7.8.jar (recomendada - versión actual del proyecto)
+- postgresql-42.7.1.jar
 - postgresql-42.6.0.jar
-- postgresql-42.5.x.jar
 - Cualquier versión 42.x.x
 
 NOTA:
@@ -32,7 +32,7 @@ Si usas una versión diferente, actualiza los scripts de compilación:
 - compile.bat (Windows)
 - compile.sh (Linux/Mac)
 
-Cambia "postgresql-42.7.1.jar" por el nombre de tu archivo.
+Cambia "postgresql-42.7.8.jar" por el nombre de tu archivo.
 
 =====================================================
 

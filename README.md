@@ -2,19 +2,29 @@
 
 Sistema Java Swing + PostgreSQL para gestión de farmacias con seguridad SHA-256 y control de roles.
 
+> 📖 **¿Primera vez aquí?** Lee primero: [`INDICE_LECTURA.md`](INDICE_LECTURA.md) para saber por dónde empezar.
+
+---
+
+## 📖 Guía de Inicio
+
+**¿Primera vez?** Sigue este orden:
+1. Lee [`INDICE_LECTURA.md`](INDICE_LECTURA.md) para saber por dónde empezar
+2. Si tienes dudas, consulta [`FAQ.md`](FAQ.md)
+
 ---
 
 ## 🚀 INSTALACIÓN RÁPIDA
 
 ### 1. Base de Datos
 ```bash
-# Crear BD
+# Crear BD en pgAdmin o psql
 psql -U postgres
 CREATE DATABASE nova_farma_db;
 \q
 
-# Ejecutar script
-psql -U postgres -d nova_farma_db -f database/schema.sql
+# Nota: Los scripts SQL ya no están en el proyecto (carpeta database/ eliminada).
+# Si necesitas recrear la BD, exporta el esquema desde pgAdmin o crea las tablas manualmente.
 ```
 
 ### 2. Configurar Conexión
@@ -23,10 +33,22 @@ Editar `src/com/novafarma/util/DatabaseConnection.java`:
 private static final String DB_PASSWORD = "TU_PASSWORD"; // Cambiar aquí
 ```
 
-### 3. Ejecutar
+### 3. Compilar y Ejecutar
+
+**Opción A: Scripts automáticos**
+```bash
+# Windows
+compile.bat
+
+# Linux/Mac
+chmod +x compile.sh
+./compile.sh
+```
+
+**Opción B: Desde IDE (Cursor/VS Code/IntelliJ)**
 - Abrir proyecto en IDE
-- Agregar `lib/postgresql-42.X.X.jar` al Build Path
-- Ejecutar `LoginFrame.java`
+- Agregar `lib/postgresql-42.7.8.jar` al Build Path
+- Ejecutar `MainApp.java` o `LoginFrame.java`
 
 ---
 
@@ -57,15 +79,27 @@ private static final String DB_PASSWORD = "TU_PASSWORD"; // Cambiar aquí
   - 🟠 NARANJA = Vence en ≤ 30 días
   - 🟢 VERDE = Buen estado
 
-### **4. Punto de Venta (POS)**
+### **4. Punto de Venta / Facturación (Unificado)**
 - ✅ Pantalla dividida: Catálogo | Carrito (JSplitPane)
+- ✅ Campos de facturación: Tipo comprobante (BOLETA/FACTURA), Cliente, DNI/RUC
 - ✅ Validación de stock antes de agregar al carrito
+- ✅ Validación de productos vencidos (bloquea venta si hay vencidos)
 - ✅ Cálculo automático de totales
 - ✅ Stock actualizado por trigger de PostgreSQL (Java solo hace INSERT en ventas)
 
 ### **5. Gestión de Usuarios**
 - ✅ Solo ADMINISTRADOR puede crear usuarios
 - ✅ Contraseñas encriptadas con SHA-256 antes de guardar
+- ✅ Tabla de usuarios con información de ventas registradas
+- ✅ Eliminación de usuarios con validaciones:
+  - No permite eliminar usuarios con ventas (conserva historial)
+  - No permite eliminar tu propio usuario mientras estás conectado
+  - Muestra mensajes descriptivos de por qué no se puede eliminar
+
+### **6. Prevención de Duplicados**
+- ✅ Detección automática de productos duplicados por nombre
+- ✅ Diálogo de confirmación: Actualizar producto existente o crear nuevo
+- ✅ Reactivación automática de productos inactivos al actualizar con nuevo lote
 
 ---
 
@@ -78,21 +112,35 @@ private static final String DB_PASSWORD = "TU_PASSWORD"; // Cambiar aquí
 
 ---
 
-## 🗂️ ESTRUCTURA DEL CÓDIGO
+## 🗂️ ESTRUCTURA DEL CÓDIGO (Arquitectura en Capas)
 
 ```
 src/com/novafarma/
-├── model/
-│   └── User.java                     # Modelo con roles (ADMINISTRADOR/TRABAJADOR)
-├── util/
-│   ├── DatabaseConnection.java       # Conexión PostgreSQL
-│   └── SecurityHelper.java           # SHA-256
-├── ui/
-│   ├── LoginFrame.java               # Login + Recuperación contraseña
-│   ├── Dashboard.java                # Dashboard con RBAC, inventario, POS
+├── model/                             # Modelos de datos
+│   ├── User.java                      # Usuario con roles
+│   ├── Product.java                   # Producto
+│   └── Sale.java                      # Venta
+├── dao/                                # Data Access Object (Acceso a BD)
+│   ├── ProductDAO.java                # CRUD de productos
+│   ├── SaleDAO.java                   # CRUD de ventas
+│   └── UserDAO.java                   # CRUD de usuarios
+├── service/                            # Lógica de negocio
+│   ├── ProductService.java            # Validaciones y reglas de productos
+│   ├── SaleService.java               # Validaciones y procesamiento de ventas
+│   └── UserService.java               # Gestión y validación de usuarios
+├── util/                               # Utilidades
+│   ├── DatabaseConnection.java        # Conexión PostgreSQL
+│   └── SecurityHelper.java            # SHA-256
+├── ui/                                 # Interfaz gráfica
+│   ├── LoginFrame.java                # Login + Recuperación contraseña
+│   ├── Dashboard.java                 # Dashboard principal (coordinador)
 │   ├── ProductExpirationRenderer.java # Alertas visuales (colores)
-│   └── UserCreationDialog.java       # Crear usuarios
-└── MainApp.java
+│   ├── UserCreationDialog.java        # Crear usuarios
+│   └── panels/                        # Paneles modulares
+│       ├── InventoryPanel.java        # Panel de inventario
+│       ├── SalesPanel.java            # Panel de ventas/facturación
+│       └── AlertsPanel.java           # Panel de alertas
+└── MainApp.java                        # Punto de entrada
 ```
 
 ---
@@ -197,6 +245,27 @@ WHERE username = 'admin';
 ✅ Trigger actualiza stock (Java NO lo hace)  
 ✅ PreparedStatement en todos los queries  
 ✅ CRUD completo (INSERT, UPDATE, DELETE)  
+
+---
+
+---
+
+## 📝 NOTAS IMPORTANTES
+
+### **Estructura del Proyecto**
+- ✅ **Carpetas eliminadas:** `database/` y `bin/` (no son necesarias en el repositorio)
+- ✅ **Scripts de compilación:** `compile.bat` (Windows) y `compile.sh` (Linux/Mac) están actualizados
+- ✅ **Arquitectura:** Sistema en capas (Model → DAO → Service → UI)
+
+### **Comportamiento de IDs en PostgreSQL**
+- Los IDs con `SERIAL` **NO se reutilizan** cuando eliminas registros
+- Si eliminas un usuario con ID 5, el siguiente usuario tendrá ID 8 (no 5)
+- Esto es **comportamiento normal** y no afecta la funcionalidad
+
+### **Eliminación de Usuarios**
+- Solo se pueden eliminar usuarios que **NO tengan ventas registradas**
+- Si un trabajador tiene ventas, no se puede eliminar (se conserva el historial)
+- Si un trabajador ya no trabaja, simplemente no le permitas iniciar sesión
 
 ---
 

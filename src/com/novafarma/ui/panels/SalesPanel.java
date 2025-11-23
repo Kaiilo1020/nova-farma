@@ -40,6 +40,11 @@ public class SalesPanel extends JPanel {
     // Usuario actual
     private User currentUser;
     
+    // Componentes UI - Facturación (Parte Superior)
+    private JComboBox<String> cmbTipoComprobante;
+    private JTextField txtCliente;
+    private JTextField txtDniRuc;
+    
     // Componentes UI - Catálogo
     private JTable tableCatalogo;
     private DefaultTableModel modelCatalogo;
@@ -70,6 +75,46 @@ public class SalesPanel extends JPanel {
     
     private void initializeUI() {
         setLayout(new BorderLayout());
+        
+        // ==================== PANEL SUPERIOR: DATOS DE FACTURACIÓN ====================
+        
+        JPanel facturacionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        facturacionPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder("📋 Datos del Cliente / Comprobante"),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        
+        // Tipo de Comprobante
+        JLabel lblTipoComprobante = new JLabel("Tipo:");
+        lblTipoComprobante.setFont(new Font("Arial", Font.BOLD, 12));
+        cmbTipoComprobante = new JComboBox<>(new String[]{"BOLETA", "FACTURA"});
+        cmbTipoComprobante.setFont(new Font("Arial", Font.PLAIN, 12));
+        cmbTipoComprobante.setPreferredSize(new Dimension(120, 30));
+        
+        // Cliente / Razón Social
+        JLabel lblCliente = new JLabel("Cliente / Razón Social:");
+        lblCliente.setFont(new Font("Arial", Font.BOLD, 12));
+        txtCliente = new JTextField(25);
+        txtCliente.setFont(new Font("Arial", Font.PLAIN, 12));
+        txtCliente.setToolTipText("Nombre del cliente o razón social de la empresa");
+        
+        // DNI / RUC
+        JLabel lblDniRuc = new JLabel("DNI / RUC:");
+        lblDniRuc.setFont(new Font("Arial", Font.BOLD, 12));
+        txtDniRuc = new JTextField(15);
+        txtDniRuc.setFont(new Font("Arial", Font.PLAIN, 12));
+        txtDniRuc.setToolTipText("DNI para boletas o RUC para facturas");
+        
+        facturacionPanel.add(lblTipoComprobante);
+        facturacionPanel.add(cmbTipoComprobante);
+        facturacionPanel.add(Box.createHorizontalStrut(10));
+        facturacionPanel.add(lblCliente);
+        facturacionPanel.add(txtCliente);
+        facturacionPanel.add(Box.createHorizontalStrut(10));
+        facturacionPanel.add(lblDniRuc);
+        facturacionPanel.add(txtDniRuc);
+        
+        add(facturacionPanel, BorderLayout.NORTH);
         
         // ==================== SPLIT PANE: CATÁLOGO | CARRITO ====================
         
@@ -202,10 +247,10 @@ public class SalesPanel extends JPanel {
         fila1.add(btnEliminarItem);
         fila1.add(btnLimpiar);
         
-        // Segunda fila: Finalizar Venta
+        // Segunda fila: Registrar Venta / Emitir Comprobante
         JPanel fila2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         
-        JButton btnFinalizar = new JButton("💳 FINALIZAR VENTA");
+        JButton btnFinalizar = new JButton("✅ Registrar Venta / Emitir Comprobante");
         btnFinalizar.setFont(new Font("Arial", Font.BOLD, 13));
         btnFinalizar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnFinalizar.addActionListener(e -> finalizarVenta());
@@ -489,6 +534,7 @@ public class SalesPanel extends JPanel {
             modelCarrito.setRowCount(0);
             totalVenta = 0.0;
             lblTotal.setText("$0.00");
+            limpiarCamposFacturacion(); // Limpiar campos de facturación
         }
     }
     
@@ -559,15 +605,30 @@ public class SalesPanel extends JPanel {
             return;
         }
         
-        // Confirmar venta
+        // Obtener datos de facturación (solo para mostrar, no afecta la lógica)
+        String tipoComprobante = (String) cmbTipoComprobante.getSelectedItem();
+        String cliente = txtCliente.getText().trim();
+        String dniRuc = txtDniRuc.getText().trim();
+        
+        // Confirmar venta con información de facturación
         int unidadesTotales = sales.stream().mapToInt(Sale::getCantidad).sum();
         
+        StringBuilder mensajeConfirmacion = new StringBuilder("¿Confirmar venta?\n\n");
+        mensajeConfirmacion.append("Tipo de Comprobante: ").append(tipoComprobante).append("\n");
+        if (!cliente.isEmpty()) {
+            mensajeConfirmacion.append("Cliente: ").append(cliente).append("\n");
+        }
+        if (!dniRuc.isEmpty()) {
+            mensajeConfirmacion.append("DNI/RUC: ").append(dniRuc).append("\n");
+        }
+        mensajeConfirmacion.append("\n");
+        mensajeConfirmacion.append("Total: ").append(lblTotal.getText()).append("\n");
+        mensajeConfirmacion.append("Líneas de productos: ").append(sales.size()).append("\n");
+        mensajeConfirmacion.append("Unidades totales: ").append(unidadesTotales);
+        
         int confirm = JOptionPane.showConfirmDialog(this,
-            "¿Confirmar venta?\n\n" +
-            "Total: " + lblTotal.getText() + "\n" +
-            "Líneas de productos: " + sales.size() + "\n" +
-            "Unidades totales: " + unidadesTotales,
-            "Finalizar Venta",
+            mensajeConfirmacion.toString(),
+            "Registrar Venta / Emitir Comprobante",
             JOptionPane.YES_NO_OPTION);
         
         if (confirm != JOptionPane.YES_OPTION) {
@@ -577,21 +638,32 @@ public class SalesPanel extends JPanel {
         // Procesar venta con SaleService (ARQUITECTURA: Capa de Servicios)
         SaleService.SaleResult result = saleService.processMultipleSales(sales);
         
-        // Mostrar resultado
+        // Mostrar resultado con información de facturación
         if (result.isSuccess()) {
+            StringBuilder mensajeExito = new StringBuilder("✅ VENTA REGISTRADA EXITOSAMENTE\n\n");
+            mensajeExito.append("Tipo de Comprobante: ").append(tipoComprobante).append("\n");
+            if (!cliente.isEmpty()) {
+                mensajeExito.append("Cliente: ").append(cliente).append("\n");
+            }
+            if (!dniRuc.isEmpty()) {
+                mensajeExito.append("DNI/RUC: ").append(dniRuc).append("\n");
+            }
+            mensajeExito.append("\n");
+            mensajeExito.append("Total: ").append(String.format("$%.2f", result.getTotalAmount())).append("\n");
+            mensajeExito.append("Líneas de productos: ").append(result.getSuccessfulSales()).append("\n");
+            mensajeExito.append("Unidades vendidas: ").append(result.getTotalUnits()).append("\n\n");
+            mensajeExito.append("El stock se actualizó automáticamente.");
+            
             JOptionPane.showMessageDialog(this,
-                "✅ VENTA EXITOSA\n\n" +
-                "Total: " + String.format("$%.2f", result.getTotalAmount()) + "\n" +
-                "Líneas de productos: " + result.getSuccessfulSales() + "\n" +
-                "Unidades vendidas: " + result.getTotalUnits() + "\n\n" +
-                "El stock se actualizó automáticamente.",
+                mensajeExito.toString(),
                 "Venta Completada",
                 JOptionPane.INFORMATION_MESSAGE);
             
-            // Limpiar carrito y recargar catálogo
+            // Limpiar carrito, campos de facturación y recargar catálogo
             modelCarrito.setRowCount(0);
             totalVenta = 0.0;
             lblTotal.setText("$0.00");
+            limpiarCamposFacturacion(); // Limpiar campos de facturación
             cargarCatalogo();
             
             // Notificar a Dashboard para recargar inventario
@@ -616,6 +688,15 @@ public class SalesPanel extends JPanel {
     }
     
     // ==================== MÉTODOS PÚBLICOS ====================
+    
+    /**
+     * Limpia los campos de facturación
+     */
+    private void limpiarCamposFacturacion() {
+        cmbTipoComprobante.setSelectedIndex(0); // Volver a "BOLETA"
+        txtCliente.setText("");
+        txtDniRuc.setText("");
+    }
     
     /**
      * Establece el callback que se ejecuta cuando se finaliza una venta

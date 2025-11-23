@@ -52,6 +52,30 @@ public class ProductService {
     }
     
     /**
+     * Busca un producto por su nombre (case-insensitive)
+     * 
+     * PROPÓSITO: Detectar duplicados antes de crear un nuevo producto.
+     * Busca en TODOS los productos (activos e inactivos) para encontrar
+     * productos que fueron desactivados pero que pueden reactivarse con un nuevo lote.
+     * 
+     * EJEMPLO DE USO:
+     * - Producto "pseudoefedrina" existe con ID=20, activo=FALSE, stock=0
+     * - Usuario intenta agregar "pseudoefedrina" nuevamente
+     * - Este método encuentra el producto existente (ID=20)
+     * - El sistema pregunta si quiere actualizar el existente o crear uno nuevo
+     * 
+     * @param nombre Nombre del producto a buscar
+     * @return Product si se encuentra, null si no existe
+     * @throws SQLException Si hay error en la consulta
+     */
+    public Product findProductByName(String nombre) throws SQLException {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            return null;
+        }
+        return productDAO.findByName(nombre);
+    }
+    
+    /**
      * Obtiene productos que vencen pronto o ya vencieron
      * 
      * @return Lista de productos con alerta de vencimiento

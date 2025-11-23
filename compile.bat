@@ -52,7 +52,8 @@ echo [3/4] Compilando codigo fuente...
 echo.
 
 REM Compilar todo de una sola vez (resuelve dependencias circulares)
-javac -d bin -cp "lib\postgresql-42.7.8.jar" src\com\novafarma\model\*.java src\com\novafarma\util\*.java src\com\novafarma\ui\*.java src\com\novafarma\*.java
+REM Orden de compilación: model -> util -> dao -> service -> ui -> MainApp
+javac -d bin -cp "lib\postgresql-42.7.8.jar" src\com\novafarma\model\*.java src\com\novafarma\util\*.java src\com\novafarma\dao\*.java src\com\novafarma\service\*.java src\com\novafarma\ui\*.java src\com\novafarma\ui\panels\*.java src\com\novafarma\*.java
 if %errorlevel% neq 0 goto error_compile
 
 echo.

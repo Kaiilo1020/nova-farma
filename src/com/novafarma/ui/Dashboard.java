@@ -5,6 +5,7 @@ import com.novafarma.model.Sale;
 import com.novafarma.model.User;
 import com.novafarma.service.ProductService;
 import com.novafarma.service.SaleService;
+import com.novafarma.service.UserService;
 import com.novafarma.ui.panels.InventoryPanel;
 import com.novafarma.ui.panels.AlertsPanel;
 import com.novafarma.ui.panels.SalesPanel;
@@ -50,6 +51,7 @@ public class Dashboard extends JFrame {
     // Servicios de lógica de negocio (Arquitectura en capas)
     private ProductService productService;
     private SaleService saleService;
+    private UserService userService;
     
     // Paneles modulares (FASE B: UI dividida en componentes)
     private InventoryPanel inventoryPanel;
@@ -69,6 +71,7 @@ public class Dashboard extends JFrame {
         // Inicializar servicios (Arquitectura en capas)
         this.productService = new ProductService();
         this.saleService = new SaleService();
+        this.userService = new UserService();
         
         // Inicializar paneles modulares (FASE B: Componentes separados)
         initializePanels();
@@ -128,14 +131,11 @@ public class Dashboard extends JFrame {
         // Tab 1: Inventario (FASE B: Panel modular)
         tabbedPane.addTab("📦 Inventario", inventoryPanel);
         
-        // Tab 2: Ventas (FASE B: Panel modular)
-        tabbedPane.addTab("💰 Ventas", salesPanel);
+        // Tab 2: Ventas / Facturación (FASE B: Panel modular unificado)
+        // NOTA: Facturación fusionada con Ventas - Single Source of Truth
+        tabbedPane.addTab("💰 Ventas / Facturación", salesPanel);
         
-        // Tab 3: Facturación
-        FacturacionPanel facturacionPanel = new FacturacionPanel(currentUser);
-        tabbedPane.addTab("📄 Facturación", facturacionPanel);
-        
-        // Tab 4: Usuarios (solo visible para ADMIN)
+        // Tab 3: Usuarios (solo visible para ADMIN)
         if (currentUser.isAdministrador()) {
             JPanel usersPanel = createUsersPanel();
             tabbedPane.addTab("👥 Usuarios", usersPanel);
@@ -214,6 +214,9 @@ public class Dashboard extends JFrame {
     
     // ==================== PANEL DE USUARIOS ====================
     
+    private JTable usersTable;
+    private DefaultTableModel usersTableModel;
+    
     private JPanel createUsersPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
@@ -225,29 +228,97 @@ public class Dashboard extends JFrame {
         styleButton(btnCreateUser);
         btnCreateUser.addActionListener(e -> createUser());
         
+        JButton btnDeleteUser = new JButton("🗑️ Eliminar Usuario");
+        styleButton(btnDeleteUser);
+        btnDeleteUser.addActionListener(e -> deleteUser());
+        
+        JButton btnRefreshUsers = new JButton("🔄 Actualizar");
+        styleButton(btnRefreshUsers);
+        btnRefreshUsers.addActionListener(e -> loadUsersData());
+        
         btnPanel.add(btnCreateUser);
+        btnPanel.add(btnDeleteUser);
+        btnPanel.add(btnRefreshUsers);
         
         panel.add(btnPanel, BorderLayout.NORTH);
         
-        // Información
-        JTextArea txtInfo = new JTextArea();
-        txtInfo.setText(
-            "GESTIÓN DE USUARIOS\n\n" +
-            "Solo los ADMINISTRADORES pueden crear nuevos usuarios.\n\n" +
-            "Al crear un usuario, la contraseña se encripta automáticamente\n" +
-            "con SHA-256 antes de guardarse en la base de datos.\n\n" +
-            "ROLES DISPONIBLES:\n" +
-            "• ADMINISTRADOR: Acceso total al sistema\n" +
-            "• TRABAJADOR: Solo ventas y visualización"
-        );
-        txtInfo.setEditable(false);
-        txtInfo.setFont(new Font("Arial", Font.PLAIN, 14));
-        txtInfo.setMargin(new Insets(10, 10, 10, 10));
+        // Tabla de usuarios
+        String[] columnNames = {"ID", "Usuario", "Rol", "Ventas Registradas"};
+        usersTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Tabla no editable
+            }
+        };
         
-        JScrollPane scrollPane = new JScrollPane(txtInfo);
+        usersTable = new JTable(usersTableModel);
+        usersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        usersTable.setRowHeight(25);
+        usersTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        usersTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        usersTable.setFillsViewportHeight(true);
+        
+        // Ajustar ancho de columnas
+        usersTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        usersTable.getColumnModel().getColumn(1).setPreferredWidth(200);
+        usersTable.getColumnModel().getColumn(2).setPreferredWidth(150);
+        usersTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        
+        JScrollPane scrollPane = new JScrollPane(usersTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Lista de Usuarios"));
+        
         panel.add(scrollPane, BorderLayout.CENTER);
         
+        // Información en la parte inferior
+        JLabel lblInfo = new JLabel(
+            "<html><body style='padding: 10px;'>" +
+            "<b>Nota:</b> Solo se pueden eliminar usuarios que NO tengan ventas registradas.<br>" +
+            "Si un trabajador tiene ventas, se conservan para el historial del negocio." +
+            "</body></html>"
+        );
+        lblInfo.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblInfo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        panel.add(lblInfo, BorderLayout.SOUTH);
+        
+        // Cargar datos iniciales
+        loadUsersData();
+        
         return panel;
+    }
+    
+    /**
+     * Carga los usuarios en la tabla
+     */
+    private void loadUsersData() {
+        try {
+            // Limpiar tabla
+            usersTableModel.setRowCount(0);
+            
+            // Obtener todos los usuarios
+            List<User> users = userService.getAllUsers();
+            
+            // Llenar tabla
+            for (User user : users) {
+                // Contar ventas del usuario
+                int salesCount = userService.getSalesCount(user.getId());
+                
+                Object[] row = {
+                    user.getId(),
+                    user.getUsername(),
+                    user.getRol().getDisplayName(),
+                    salesCount + " venta(s)"
+                };
+                usersTableModel.addRow(row);
+            }
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error al cargar usuarios:\n" + e.getMessage(),
+                "Error de Base de Datos",
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
     
     // ==================== PANEL DE ALERTAS ====================
@@ -468,6 +539,22 @@ public class Dashboard extends JFrame {
         inventoryPanel.loadProductsData();
     }
     
+    /**
+     * Agrega un nuevo producto al inventario
+     * 
+     * MEJORA IMPLEMENTADA: Detección de duplicados
+     * Antes de crear un producto nuevo, verifica si ya existe uno con el mismo nombre.
+     * Si existe (aunque esté inactivo), pregunta al usuario si desea:
+     * - Actualizar el producto existente (recomendado para nuevos lotes)
+     * - Crear un producto nuevo (para casos especiales)
+     * 
+     * FLUJO:
+     * 1. Validar permisos (solo administrador)
+     * 2. Mostrar formulario de entrada
+     * 3. Verificar si existe producto con mismo nombre
+     * 4. Si existe → Mostrar diálogo de confirmación
+     * 5. Si no existe → Crear producto nuevo normalmente
+     */
     private void addProduct() {
         // VALIDACIÓN DE ROL
         if (currentUser.isTrabajador()) {
@@ -505,6 +592,98 @@ public class Dashboard extends JFrame {
                 int stock = Integer.parseInt(txtStock.getText());
                 Date fechaVenc = Date.valueOf(txtFechaVenc.getText());
                 
+                // ==================== VERIFICACIÓN DE DUPLICADOS ====================
+                // Buscar si ya existe un producto con el mismo nombre (case-insensitive)
+                Product existingProduct = productService.findProductByName(nombre);
+                
+                if (existingProduct != null) {
+                    // PRODUCTO DUPLICADO ENCONTRADO
+                    // Construir mensaje informativo
+                    String estado = existingProduct.isActivo() ? "ACTIVO" : "INACTIVO";
+                    String mensajeDuplicado = String.format(
+                        "⚠️ PRODUCTO DUPLICADO DETECTADO ⚠️\n\n" +
+                        "Ya existe un producto llamado '%s':\n\n" +
+                        "ID: %d\n" +
+                        "Estado: %s\n" +
+                        "Stock actual: %d\n" +
+                        "Precio actual: $%.2f\n\n" +
+                        "¿Qué deseas hacer?\n\n" +
+                        "• ACTUALIZAR: Reactivará el producto existente con el nuevo lote\n" +
+                        "  (Recomendado para cuando llega un nuevo lote del mismo producto)\n\n" +
+                        "• CREAR NUEVO: Creará un producto diferente con el mismo nombre\n" +
+                        "  (Solo si realmente son productos diferentes)",
+                        nombre,
+                        existingProduct.getId(),
+                        estado,
+                        existingProduct.getStock(),
+                        existingProduct.getPrecio()
+                    );
+                    
+                    // Diálogo con 3 opciones
+                    Object[] opciones = {"Actualizar Existente", "Crear Nuevo", "Cancelar"};
+                    int respuesta = JOptionPane.showOptionDialog(
+                        this,
+                        mensajeDuplicado,
+                        "Producto Duplicado",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        opciones,
+                        opciones[0]  // "Actualizar Existente" como opción por defecto
+                    );
+                    
+                    if (respuesta == 0) {
+                        // OPCIÓN 1: ACTUALIZAR PRODUCTO EXISTENTE
+                        // Actualizar el producto existente con los nuevos datos del lote
+                        existingProduct.setNombre(nombre);  // Por si cambió la capitalización
+                        existingProduct.setDescripcion(descripcion);
+                        existingProduct.setPrecio(precio);
+                        existingProduct.setStock(stock);  // Nuevo stock del lote
+                        existingProduct.setFechaVencimiento(fechaVenc);  // Nueva fecha de vencimiento
+                        // Nota: updateProduct() automáticamente reactiva el producto si stock > 0
+                        
+                        boolean success = productService.updateProduct(existingProduct);
+                        
+                        if (success) {
+                            JOptionPane.showMessageDialog(this,
+                                String.format(
+                                    "✅ Producto actualizado exitosamente\n\n" +
+                                    "ID: %d\n" +
+                                    "Nombre: %s\n" +
+                                    "Stock: %d unidades\n" +
+                                    "El producto ha sido reactivado automáticamente.",
+                                    existingProduct.getId(),
+                                    nombre,
+                                    stock
+                                ),
+                                "Producto Actualizado",
+                                JOptionPane.INFORMATION_MESSAGE);
+                            loadProductsData(); // Recargar tabla
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                "⚠️ No se pudo actualizar el producto",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                        return; // Salir del método (ya procesamos la acción)
+                        
+                    } else if (respuesta == 1) {
+                        // OPCIÓN 2: CREAR PRODUCTO NUEVO
+                        // El usuario confirmó que quiere crear un producto diferente
+                        // Proceder con la creación normal (código continúa abajo)
+                        
+                    } else {
+                        // OPCIÓN 3: CANCELAR
+                        // El usuario canceló la operación
+                        return;
+                    }
+                }
+                
+                // ==================== CREAR PRODUCTO NUEVO ====================
+                // Si llegamos aquí, significa que:
+                // 1. No existe un producto con ese nombre, O
+                // 2. El usuario eligió "Crear Nuevo" explícitamente
+                
                 // Crear objeto Product (ARQUITECTURA: Usar modelo)
                 Product newProduct = new Product(nombre, descripcion, precio, stock, fechaVenc);
                 
@@ -530,7 +709,14 @@ public class Dashboard extends JFrame {
                     "❌ Validación fallida:\n" + e.getMessage(),
                     "Datos Inválidos",
                     JOptionPane.WARNING_MESSAGE);
+            } catch (SQLException e) {
+                // Errores de base de datos
+                JOptionPane.showMessageDialog(this, 
+                    "❌ Error de base de datos:\n" + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             } catch (Exception e) {
+                // Otros errores (parseo de números, etc.)
                 JOptionPane.showMessageDialog(this, 
                     "❌ Error: " + e.getMessage(),
                     "Error",
@@ -743,6 +929,96 @@ public class Dashboard extends JFrame {
         // Mostrar diálogo de creación de usuario
         UserCreationDialog dialog = new UserCreationDialog(this);
         dialog.setVisible(true);
+        
+        // Recargar tabla después de crear usuario
+        loadUsersData();
+    }
+    
+    /**
+     * Elimina un usuario seleccionado de la tabla
+     */
+    private void deleteUser() {
+        // VALIDACIÓN DE ROL
+        if (currentUser.isTrabajador()) {
+            JOptionPane.showMessageDialog(this,
+                "ACCESO DENEGADO\n\nSolo los ADMINISTRADORES pueden eliminar usuarios.",
+                "Permiso Denegado",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Validar selección
+        int selectedRow = usersTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Por favor, selecciona un usuario de la tabla para eliminar.",
+                "Selección Requerida",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Obtener datos del usuario seleccionado
+        int userId = (Integer) usersTableModel.getValueAt(selectedRow, 0);
+        String username = (String) usersTableModel.getValueAt(selectedRow, 1);
+        
+        // NO permitir eliminar el usuario actual
+        if (userId == currentUser.getId()) {
+            JOptionPane.showMessageDialog(this,
+                "No puedes eliminar tu propio usuario mientras estás conectado.\n\n" +
+                "Cierra sesión primero o usa otra cuenta de administrador.",
+                "Operación No Permitida",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Confirmar eliminación
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "¿Estás seguro de eliminar al usuario '" + username + "' (ID: " + userId + ")?\n\n" +
+            "Esta acción NO se puede deshacer.",
+            "Confirmar Eliminación",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+        
+        // Intentar eliminar
+        try {
+            UserService.DeleteUserResult result = userService.deleteUser(userId);
+            
+            if (result.isSuccess()) {
+                JOptionPane.showMessageDialog(this,
+                    result.getMessage(),
+                    "Usuario Eliminado",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Recargar tabla
+                loadUsersData();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    result.getMessage(),
+                    "No Se Puede Eliminar",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+            
+        } catch (SQLException e) {
+            // Manejar errores de integridad referencial u otros
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("foreign key")) {
+                JOptionPane.showMessageDialog(this,
+                    "No se puede eliminar el usuario porque tiene ventas registradas.\n\n" +
+                    "Las ventas deben conservarse para el historial del negocio.",
+                    "Error de Integridad",
+                    JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Error al eliminar usuario:\n" + errorMsg,
+                    "Error de Base de Datos",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+            e.printStackTrace();
+        }
     }
     
     private void logout() {

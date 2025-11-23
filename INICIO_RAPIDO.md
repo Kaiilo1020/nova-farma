@@ -8,7 +8,7 @@ Guía ultra-resumida para ejecutar el proyecto en 5 minutos.
 
 - Java JDK 8+
 - PostgreSQL 12+
-- Driver JDBC: `postgresql-42.7.1.jar`
+- Driver JDBC: `postgresql-42.7.8.jar`
 
 ---
 
@@ -20,17 +20,19 @@ Guía ultra-resumida para ejecutar el proyecto en 5 minutos.
 # Conectar
 psql -U postgres
 
-# Crear BD y ejecutar script
+# Crear BD
 CREATE DATABASE nova_farma_db;
 \c nova_farma_db
-\i database/schema.sql
+
+# Nota: Los scripts SQL ya no están en el proyecto.
+# Crea las tablas manualmente desde pgAdmin o exporta el esquema.
 \q
 ```
 
 ### 2. Driver JDBC
 
 Descargar: https://jdbc.postgresql.org/download/
-Guardar en: `lib/postgresql-42.7.1.jar`
+Guardar en: `lib/postgresql-42.7.8.jar`
 
 ### 3. Configurar Contraseña
 
@@ -91,21 +93,22 @@ chmod +x compile.sh
 ## 🐛 Problemas Comunes
 
 ### "Driver not found"
-→ Verifica que `postgresql-42.7.1.jar` esté en `lib/`
+→ Verifica que `postgresql-42.7.8.jar` esté en `lib/`
 
 ### "Connection refused"
 → Inicia PostgreSQL: `sudo service postgresql start`
 
 ### "Database not exist"
-→ Ejecuta `database/schema.sql`
+→ Crea la BD manualmente: `CREATE DATABASE nova_farma_db;`
 
 ---
 
 ## 📚 Documentación Completa
 
-- **Instalación detallada:** `INSTALACION.md`
+- **Instalación detallada:** `GUIA_INSTALACION_COMPLETA.md`
 - **Guía de pruebas:** `PRUEBAS.md`
 - **README completo:** `README.md`
+- **Índice de lectura:** `INDICE_LECTURA.md`
 
 ---
 

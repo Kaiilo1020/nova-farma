@@ -74,7 +74,7 @@ Demostrar que el login encripta la contraseña ingresada antes de compararla.
 
 1. **Iniciar la aplicación:**
    ```bash
-   java -cp "bin:lib/postgresql-42.7.1.jar" com.novafarma.MainApp
+   java -cp "bin:lib/postgresql-42.7.8.jar" com.novafarma.MainApp
    ```
 
 2. **Intentar login con credenciales correctas:**
