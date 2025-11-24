@@ -247,7 +247,7 @@ public class InventoryPanel extends JPanel {
      */
     private void loadProductsDataAll() {
         try {
-            List<Product> products = productService.getAllActiveProducts();
+            List<Product> products = productService.getAllActiveProducts(); // Obtener todos los productos activos
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
             for (Product product : products) {

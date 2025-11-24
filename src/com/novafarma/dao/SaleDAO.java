@@ -30,20 +30,20 @@ public class SaleDAO {
      * @return true si la inserción fue exitosa
      * @throws SQLException Si hay error en la inserción o stock insuficiente
      */
-    public boolean save(Sale sale) throws SQLException {
-        String sql = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
+    public boolean save(Sale venta) throws SQLException {
+        String consultaSQL = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
                      "VALUES (?, ?, ?, ?, ?)";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, sale.getProductoId());
-            pstmt.setInt(2, sale.getUsuarioId());
-            pstmt.setInt(3, sale.getCantidad());
-            pstmt.setDouble(4, sale.getPrecioUnitario());
-            pstmt.setDouble(5, sale.getTotal());
+            consultaPreparada.setInt(1, venta.getProductoId());
+            consultaPreparada.setInt(2, venta.getUsuarioId());
+            consultaPreparada.setInt(3, venta.getCantidad());
+            consultaPreparada.setDouble(4, venta.getPrecioUnitario());
+            consultaPreparada.setDouble(5, venta.getTotal());
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -55,46 +55,46 @@ public class SaleDAO {
      * @return true si todas las ventas fueron exitosas
      * @throws SQLException Si hay error en alguna inserción
      */
-    public boolean saveAll(List<Sale> sales) throws SQLException {
-        Connection conn = null;
-        PreparedStatement pstmt = null;
+    public boolean saveAll(List<Sale> ventas) throws SQLException {
+        Connection conexion = null;
+        PreparedStatement consultaPreparada = null;
         
         try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false); // Iniciar transacción
+            conexion = DatabaseConnection.getConnection();
+            conexion.setAutoCommit(false); // Iniciar transacción
             
-            String sql = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
+            String consultaSQL = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
                          "VALUES (?, ?, ?, ?, ?)";
-            pstmt = conn.prepareStatement(sql);
+            consultaPreparada = conexion.prepareStatement(consultaSQL);
             
-            for (Sale sale : sales) {
-                pstmt.setInt(1, sale.getProductoId());
-                pstmt.setInt(2, sale.getUsuarioId());
-                pstmt.setInt(3, sale.getCantidad());
-                pstmt.setDouble(4, sale.getPrecioUnitario());
-                pstmt.setDouble(5, sale.getTotal());
-                pstmt.addBatch();
+            for (Sale venta : ventas) {
+                consultaPreparada.setInt(1, venta.getProductoId());
+                consultaPreparada.setInt(2, venta.getUsuarioId());
+                consultaPreparada.setInt(3, venta.getCantidad());
+                consultaPreparada.setDouble(4, venta.getPrecioUnitario());
+                consultaPreparada.setDouble(5, venta.getTotal());
+                consultaPreparada.addBatch();
             }
             
-            pstmt.executeBatch();
-            conn.commit(); // Confirmar transacción
+            consultaPreparada.executeBatch();
+            conexion.commit(); // Confirmar transacción
             return true;
             
         } catch (SQLException e) {
-            if (conn != null) {
+            if (conexion != null) {
                 try {
-                    conn.rollback(); // Revertir en caso de error
-                } catch (SQLException rollbackEx) {
-                    rollbackEx.printStackTrace();
+                    conexion.rollback(); // Revertir en caso de error
+                } catch (SQLException excepcionRollback) {
+                    excepcionRollback.printStackTrace();
                 }
             }
             throw e; // Relanzar excepción
             
         } finally {
-            if (pstmt != null) pstmt.close();
-            if (conn != null) {
-                conn.setAutoCommit(true); // Restaurar auto-commit
-                conn.close();
+            if (consultaPreparada != null) consultaPreparada.close();
+            if (conexion != null) {
+                conexion.setAutoCommit(true); // Restaurar auto-commit
+                conexion.close();
             }
         }
     }
@@ -106,21 +106,21 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Sale> findAll() throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+        List<Sale> ventas = new ArrayList<>();
+        String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas ORDER BY fecha_venta DESC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                Sale sale = mapResultSetToSale(rs);
-                sales.add(sale);
+            while (resultadoConsulta.next()) {
+                Sale venta = mapearResultadoAVenta(resultadoConsulta);
+                ventas.add(venta);
             }
         }
         
-        return sales;
+        return ventas;
     }
     
     /**
@@ -133,25 +133,25 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Sale> findAll(int limit, int offset) throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+        List<Sale> ventas = new ArrayList<>();
+        String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas ORDER BY fecha_venta DESC LIMIT ? OFFSET ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, limit);
-            pstmt.setInt(2, offset);
+            consultaPreparada.setInt(1, limit);
+            consultaPreparada.setInt(2, offset);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Sale sale = mapResultSetToSale(rs);
-                    sales.add(sale);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    Sale venta = mapearResultadoAVenta(resultadoConsulta);
+                    ventas.add(venta);
                 }
             }
         }
         
-        return sales;
+        return ventas;
     }
     
     /**
@@ -162,24 +162,24 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Sale> findByUserId(int usuarioId) throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+        List<Sale> ventas = new ArrayList<>();
+        String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE usuario_id = ? ORDER BY fecha_venta DESC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, usuarioId);
+            consultaPreparada.setInt(1, usuarioId);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Sale sale = mapResultSetToSale(rs);
-                    sales.add(sale);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    Sale venta = mapearResultadoAVenta(resultadoConsulta);
+                    ventas.add(venta);
                 }
             }
         }
         
-        return sales;
+        return ventas;
     }
     
     /**
@@ -190,24 +190,24 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Sale> findByProductId(int productoId) throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+        List<Sale> ventas = new ArrayList<>();
+        String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE producto_id = ? ORDER BY fecha_venta DESC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, productoId);
+            consultaPreparada.setInt(1, productoId);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Sale sale = mapResultSetToSale(rs);
-                    sales.add(sale);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    Sale venta = mapearResultadoAVenta(resultadoConsulta);
+                    ventas.add(venta);
                 }
             }
         }
         
-        return sales;
+        return ventas;
     }
     
     /**
@@ -218,26 +218,26 @@ public class SaleDAO {
      * @return Lista de ventas en el rango
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findByDateRange(Timestamp startDate, Timestamp endDate) throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
+    public List<Sale> findByDateRange(Timestamp fechaInicio, Timestamp fechaFin) throws SQLException {
+        List<Sale> ventas = new ArrayList<>();
+        String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE fecha_venta BETWEEN ? AND ? ORDER BY fecha_venta DESC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setTimestamp(1, startDate);
-            pstmt.setTimestamp(2, endDate);
+            consultaPreparada.setTimestamp(1, fechaInicio);
+            consultaPreparada.setTimestamp(2, fechaFin);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Sale sale = mapResultSetToSale(rs);
-                    sales.add(sale);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    Sale venta = mapearResultadoAVenta(resultadoConsulta);
+                    ventas.add(venta);
                 }
             }
         }
         
-        return sales;
+        return ventas;
     }
     
     /**
@@ -247,14 +247,14 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public int countAll() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM ventas";
+        String consultaSQL = "SELECT COUNT(*) as total FROM ventas";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            if (rs.next()) {
-                return rs.getInt("total");
+            if (resultadoConsulta.next()) {
+                return resultadoConsulta.getInt("total");
             }
         }
         
@@ -268,14 +268,14 @@ public class SaleDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public double calculateTotalRevenue() throws SQLException {
-        String sql = "SELECT SUM(total) as ingresos FROM ventas";
+        String consultaSQL = "SELECT SUM(total) as ingresos FROM ventas";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            if (rs.next()) {
-                return rs.getDouble("ingresos");
+            if (resultadoConsulta.next()) {
+                return resultadoConsulta.getDouble("ingresos");
             }
         }
         
@@ -287,18 +287,18 @@ public class SaleDAO {
     /**
      * Mapea un ResultSet a un objeto Sale
      * 
-     * @param rs ResultSet con datos de la venta
+     * @param resultadoConsulta ResultSet con datos de la venta
      * @return Objeto Sale
      * @throws SQLException Si hay error al leer los datos
      */
-    private Sale mapResultSetToSale(ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        int productoId = rs.getInt("producto_id");
-        int usuarioId = rs.getInt("usuario_id");
-        int cantidad = rs.getInt("cantidad");
-        double precioUnitario = rs.getDouble("precio_unitario");
-        double total = rs.getDouble("total");
-        Timestamp fechaVenta = rs.getTimestamp("fecha_venta");
+    private Sale mapearResultadoAVenta(ResultSet resultadoConsulta) throws SQLException {
+        int id = resultadoConsulta.getInt("id");
+        int productoId = resultadoConsulta.getInt("producto_id");
+        int usuarioId = resultadoConsulta.getInt("usuario_id");
+        int cantidad = resultadoConsulta.getInt("cantidad");
+        double precioUnitario = resultadoConsulta.getDouble("precio_unitario");
+        double total = resultadoConsulta.getDouble("total");
+        Timestamp fechaVenta = resultadoConsulta.getTimestamp("fecha_venta");
         
         return new Sale(id, productoId, usuarioId, cantidad, precioUnitario, total, fechaVenta);
     }

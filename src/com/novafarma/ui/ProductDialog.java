@@ -51,7 +51,7 @@ public class ProductDialog extends JDialog {
     }
     
     private void initializeUI(Product product) {
-        setSize(450, 350);
+        setSize(500, 480);
         setLocationRelativeTo(getParent());
         setResizable(false);
         setLayout(new BorderLayout(10, 10));
@@ -61,10 +61,11 @@ public class ProductDialog extends JDialog {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
         
-        // Título
+        // Título centrado
         JLabel lblTitle = new JLabel(product == null ? "Nuevo Producto" : "Editar Producto");
-        lblTitle.setFont(new Font("Arial", Font.BOLD, 16));
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 18));
         lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
         mainPanel.add(lblTitle);
         mainPanel.add(Box.createVerticalStrut(20));
         
@@ -119,18 +120,24 @@ public class ProductDialog extends JDialog {
         if (product != null && product.getFechaVencimiento() != null) {
             fechaStr = product.getFechaVencimiento().toString();
         } else if (product == null) {
-            fechaStr = "2025-12-31";
+            fechaStr = ""; // Dejar vacío por defecto para nuevo producto
         }
         txtFechaVenc = new JTextField(fechaStr);
         txtFechaVenc.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        txtFechaVenc.setToolTipText("Formato: YYYY-MM-DD (ejemplo: 2025-12-31). Dejar vacío si no tiene fecha.");
+        txtFechaVenc.setToolTipText("Formato: YYYY-MM-DD (ejemplo: 2025-12-31). Dejar vacío si no tiene fecha de vencimiento.");
         
         mainPanel.add(lblFechaVenc);
         mainPanel.add(Box.createVerticalStrut(5));
         mainPanel.add(txtFechaVenc);
         mainPanel.add(Box.createVerticalStrut(20));
         
-        add(mainPanel, BorderLayout.CENTER);
+        // Agregar scroll por si el contenido es muy largo
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        
+        add(scrollPane, BorderLayout.CENTER);
         
         // Panel de botones
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));

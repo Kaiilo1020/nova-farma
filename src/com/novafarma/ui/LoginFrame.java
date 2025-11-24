@@ -197,33 +197,33 @@ public class LoginFrame extends JFrame {
             String passwordHash = SecurityHelper.encryptPassword(password);
             
             // Consulta a la base de datos
-            Connection conn = DatabaseConnection.getConnection();
-            String sql = "SELECT id, username, password_hash, rol FROM usuarios WHERE username = ? AND password_hash = ?";
+            Connection conexion = DatabaseConnection.getConnection();
+            String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios WHERE username = ? AND password_hash = ?";
             
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            stmt.setString(2, passwordHash); // Enviamos el HASH, no la contraseña plana
+            PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL);
+            consultaPreparada.setString(1, username);
+            consultaPreparada.setString(2, passwordHash); // Enviamos el HASH, no la contraseña plana
             
-            ResultSet rs = stmt.executeQuery();
+            ResultSet resultadoConsulta = consultaPreparada.executeQuery();
             
-            if (rs.next()) {
+            if (resultadoConsulta.next()) {
                 // LOGIN EXITOSO
-                int id = rs.getInt("id");
-                String rolString = rs.getString("rol");
+                int id = resultadoConsulta.getInt("id");
+                String rolString = resultadoConsulta.getString("rol");
                 UserRole rol = UserRole.fromString(rolString);
                 
-                User loggedUser = new User(id, username, passwordHash, rol);
+                User usuarioLogueado = new User(id, username, passwordHash, rol);
                 
                 // Mostrar mensaje de éxito
                 showStatus("¡Bienvenido, " + username + "!", new Color(46, 204, 113));
                 
                 // Cerrar la ventana de login después de 500ms
-                Timer timer = new Timer(500, e -> {
-                    openDashboard(loggedUser);
+                Timer temporizador = new Timer(500, e -> {
+                    openDashboard(usuarioLogueado);
                     dispose();
                 });
-                timer.setRepeats(false);
-                timer.start();
+                temporizador.setRepeats(false);
+                temporizador.start();
                 
             } else {
                 // LOGIN FALLIDO
@@ -232,8 +232,8 @@ public class LoginFrame extends JFrame {
                 txtPassword.requestFocus();
             }
             
-            rs.close();
-            stmt.close();
+            resultadoConsulta.close();
+            consultaPreparada.close();
             
         } catch (SQLException e) {
             showStatus("Error de conexión a la base de datos", Color.RED);
@@ -253,7 +253,7 @@ public class LoginFrame extends JFrame {
      * 4. Sistema encripta la nueva contraseña con SHA-256
      * 5. Ejecuta UPDATE usuarios SET password_hash = ? WHERE username = ?
      */
-    private void showPasswordRecovery() {
+    private void showPasswordRecovery() { //Funcion para recuperar la contraseña
         // Paso 1: Solicitar nombre de usuario
         String username = JOptionPane.showInputDialog(
             this,
@@ -266,30 +266,30 @@ public class LoginFrame extends JFrame {
             return; // Usuario canceló
         }
         
-        username = username.trim();
+        username = username.trim(); // Eliminar espacios en blanco
         
         try {
             // Paso 2: Verificar que el usuario existe
-            Connection conn = DatabaseConnection.getConnection();
-            String checkSql = "SELECT id FROM usuarios WHERE username = ?";
-            PreparedStatement checkStmt = conn.prepareStatement(checkSql);
-            checkStmt.setString(1, username);
-            ResultSet rs = checkStmt.executeQuery();
+            Connection conexion = DatabaseConnection.getConnection();
+            String consultaVerificacion = "SELECT id FROM usuarios WHERE username = ?";
+            PreparedStatement consultaVerificar = conexion.prepareStatement(consultaVerificacion);
+            consultaVerificar.setString(1, username);
+            ResultSet resultadoVerificacion = consultaVerificar.executeQuery();
             
-            if (!rs.next()) {
+            if (!resultadoVerificacion.next()) {
                 JOptionPane.showMessageDialog(
                     this,
                     "El usuario '" + username + "' no existe en el sistema.",
                     "Usuario No Encontrado",
                     JOptionPane.ERROR_MESSAGE
                 );
-                rs.close();
-                checkStmt.close();
+                resultadoVerificacion.close();
+                consultaVerificar.close();
                 return;
             }
             
-            rs.close();
-            checkStmt.close();
+            resultadoVerificacion.close();
+            consultaVerificar.close();
             
             // Paso 3: Solicitar nueva contraseña
             JPasswordField newPasswordField = new JPasswordField();
@@ -320,7 +320,7 @@ public class LoginFrame extends JFrame {
                         "Error",
                         JOptionPane.ERROR_MESSAGE
                     );
-                    return;
+                    return; // Si las contraseñas no coinciden, se retorna
                 }
                 
                 // Validar longitud mínima
@@ -338,14 +338,14 @@ public class LoginFrame extends JFrame {
                 String newPasswordHash = SecurityHelper.encryptPassword(newPassword);
                 
                 // Paso 5: Actualizar en la base de datos
-                String updateSql = "UPDATE usuarios SET password_hash = ? WHERE username = ?";
-                PreparedStatement updateStmt = conn.prepareStatement(updateSql);
-                updateStmt.setString(1, newPasswordHash);
-                updateStmt.setString(2, username);
+                String consultaActualizacion = "UPDATE usuarios SET password_hash = ? WHERE username = ?";
+                PreparedStatement consultaActualizar = conexion.prepareStatement(consultaActualizacion);
+                consultaActualizar.setString(1, newPasswordHash);
+                consultaActualizar.setString(2, username);
                 
-                int rowsAffected = updateStmt.executeUpdate();
+                int filasAfectadas = consultaActualizar.executeUpdate(); // Actualizar la contraseña en la base de datos
                 
-                if (rowsAffected > 0) {
+                if (filasAfectadas > 0) { // Si la contraseña se actualizó correctamente, se muestra un mensaje de éxito
                     JOptionPane.showMessageDialog(
                         this,
                         "¡Contraseña actualizada exitosamente!\nYa puedes iniciar sesión con tu nueva contraseña.",
@@ -354,7 +354,7 @@ public class LoginFrame extends JFrame {
                     );
                 }
                 
-                updateStmt.close();
+                consultaActualizar.close();
             }
             
         } catch (SQLException e) {

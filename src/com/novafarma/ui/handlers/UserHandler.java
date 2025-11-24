@@ -146,16 +146,16 @@ public class UserHandler {
             return;
         }
         
-        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
-        currentPage = PaginationHelper.validatePageNumber(currentPage, totalPages);
+        int totalPaginas = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        currentPage = PaginationHelper.validatePageNumber(currentPage, totalPaginas);
         
-        String range = PaginationHelper.getDisplayRange(currentPage, PAGE_SIZE, totalRecords);
-        lblPageInfo.setText(String.format("Página %d de %d (%s)", currentPage, totalPages, range));
+        String rango = PaginationHelper.getDisplayRange(currentPage, PAGE_SIZE, totalRecords);
+        lblPageInfo.setText(String.format("Página %d de %d (%s)", currentPage, totalPaginas, rango));
         
         if (btnFirstPage != null) btnFirstPage.setEnabled(currentPage > 1);
         if (btnPrevPage != null) btnPrevPage.setEnabled(currentPage > 1);
-        if (btnNextPage != null) btnNextPage.setEnabled(currentPage < totalPages);
-        if (btnLastPage != null) btnLastPage.setEnabled(currentPage < totalPages);
+        if (btnNextPage != null) btnNextPage.setEnabled(currentPage < totalPaginas);
+        if (btnLastPage != null) btnLastPage.setEnabled(currentPage < totalPaginas);
     }
     
     private void goToFirstPage() {
@@ -173,8 +173,8 @@ public class UserHandler {
     }
     
     private void goToNextPage() {
-        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
-        if (currentPage < totalPages) {
+        int totalPaginas = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        if (currentPage < totalPaginas) {
             currentPage++;
             cargarDatosPaginated();
             updatePaginationControls();
@@ -182,8 +182,8 @@ public class UserHandler {
     }
     
     private void goToLastPage() {
-        int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
-        currentPage = totalPages;
+        int totalPaginas = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
+        currentPage = totalPaginas;
         cargarDatosPaginated();
         updatePaginationControls();
     }

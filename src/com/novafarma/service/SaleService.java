@@ -76,6 +76,16 @@ public class SaleService {
     }
     
     /**
+     * Cuenta el número total de ventas
+     * 
+     * @return Número total de ventas
+     * @throws SQLException Si hay error en la consulta
+     */
+    public int countAllSales() throws SQLException {
+        return saleDAO.countAll();
+    }
+    
+    /**
      * Obtiene el total de ingresos
      * 
      * @return Suma total de todas las ventas
@@ -95,21 +105,21 @@ public class SaleService {
      * @throws IllegalStateException Si la validación falla
      * @throws SQLException Si hay error en la BD
      */
-    public boolean processSale(Sale sale) throws SQLException {
+    public boolean processSale(Sale venta) throws SQLException {
         // Validar datos de la venta
-        if (!sale.isValid()) {
+        if (!venta.isValid()) {
             throw new IllegalStateException("Datos de venta inválidos");
         }
         
         // Obtener producto y validar
-        Product product = productDAO.findById(sale.getProductoId());
-        productService.validateSellableProduct(product, sale.getCantidad());
+        Product producto = productDAO.findById(venta.getProductoId());
+        productService.validateSellableProduct(producto, venta.getCantidad());
         
         // Asegurar que el total esté actualizado
-        sale.updateTotal();
+        venta.updateTotal();
         
         // Registrar venta (el trigger actualiza el stock automáticamente)
-        return saleDAO.save(sale);
+        return saleDAO.save(venta);
     }
     
     /**
@@ -119,52 +129,52 @@ public class SaleService {
      * @param sales Lista de ventas a procesar
      * @return SaleResult con el resultado de la operación
      */
-    public SaleResult processMultipleSales(List<Sale> sales) {
-        SaleResult result = new SaleResult();
-        List<String> errors = new ArrayList<>();
+    public SaleResult processMultipleSales(List<Sale> ventas) {
+        SaleResult resultado = new SaleResult();
+        List<String> errores = new ArrayList<>();
         
         try {
             // Validar todas las ventas ANTES de procesarlas
-            for (Sale sale : sales) {
+            for (Sale venta : ventas) {
                 try {
-                    Product product = productDAO.findById(sale.getProductoId());
-                    productService.validateSellableProduct(product, sale.getCantidad());
-                    sale.updateTotal();
+                    Product producto = productDAO.findById(venta.getProductoId());
+                    productService.validateSellableProduct(producto, venta.getCantidad());
+                    venta.updateTotal();
                 } catch (IllegalStateException | SQLException e) {
-                    errors.add("Producto ID " + sale.getProductoId() + ": " + e.getMessage());
+                    errores.add("Producto ID " + venta.getProductoId() + ": " + e.getMessage());
                 }
             }
             
             // Si hay errores de validación, no procesar ninguna venta
-            if (!errors.isEmpty()) {
-                result.setSuccess(false);
-                result.setErrors(errors);
-                result.setMessage("Validación fallida. No se procesó ninguna venta.");
-                return result;
+            if (!errores.isEmpty()) {
+                resultado.setSuccess(false);
+                resultado.setErrors(errores);
+                resultado.setMessage("Validación fallida. No se procesó ninguna venta.");
+                return resultado;
             }
             
             // Todas las validaciones pasaron, procesar ventas en transacción
-            boolean success = saleDAO.saveAll(sales);
+            boolean exito = saleDAO.saveAll(ventas);
             
-            if (success) {
-                result.setSuccess(true);
-                result.setSuccessfulSales(sales.size());
-                result.setTotalAmount(calculateTotalAmount(sales));
-                result.setTotalUnits(calculateTotalUnits(sales));
-                result.setMessage("Venta completada exitosamente");
+            if (exito) {
+                resultado.setSuccess(true);
+                resultado.setSuccessfulSales(ventas.size());
+                resultado.setTotalAmount(calculateTotalAmount(ventas));
+                resultado.setTotalUnits(calculateTotalUnits(ventas));
+                resultado.setMessage("Venta completada exitosamente");
             } else {
-                result.setSuccess(false);
-                result.setMessage("Error al procesar las ventas en la base de datos");
+                resultado.setSuccess(false);
+                resultado.setMessage("Error al procesar las ventas en la base de datos");
             }
             
         } catch (SQLException e) {
-            result.setSuccess(false);
-            result.setMessage("Error de base de datos: " + e.getMessage());
-            errors.add(e.getMessage());
-            result.setErrors(errors);
+            resultado.setSuccess(false);
+            resultado.setMessage("Error de base de datos: " + e.getMessage());
+            errores.add(e.getMessage());
+            resultado.setErrors(errores);
         }
         
-        return result;
+        return resultado;
     }
     
     /**
@@ -174,47 +184,47 @@ public class SaleService {
      * - Que haya stock suficiente
      * - Que los productos estén activos
      * 
-     * @param sales Lista de ventas (carrito)
+     * @param ventas Lista de ventas (carrito)
      * @return Lista de errores (vacía si todo está OK)
      */
-    public List<String> validateCart(List<Sale> sales) {
-        List<String> errors = new ArrayList<>();
+    public List<String> validateCart(List<Sale> ventas) {
+        List<String> errores = new ArrayList<>();
         
-        if (sales == null || sales.isEmpty()) {
-            errors.add("El carrito está vacío");
-            return errors;
+        if (ventas == null || ventas.isEmpty()) {
+            errores.add("El carrito está vacío");
+            return errores;
         }
         
         try {
-            for (Sale sale : sales) {
-                Product product = productDAO.findById(sale.getProductoId());
+            for (Sale venta : ventas) {
+                Product producto = productDAO.findById(venta.getProductoId());
                 
-                if (product == null) {
-                    errors.add("Producto ID " + sale.getProductoId() + " no existe");
+                if (producto == null) {
+                    errores.add("Producto ID " + venta.getProductoId() + " no existe");
                     continue;
                 }
                 
                 // Validar vencimiento
-                if (product.isExpired()) {
-                    errors.add(product.getNombre() + " está VENCIDO. Debe retirarlo del carrito.");
+                if (producto.isExpired()) {
+                    errores.add(producto.getNombre() + " está VENCIDO. Debe retirarlo del carrito.");
                 }
                 
                 // Validar estado activo
-                if (!product.isActivo()) {
-                    errors.add(product.getNombre() + " está inactivo");
+                if (!producto.isActivo()) {
+                    errores.add(producto.getNombre() + " está inactivo");
                 }
                 
                 // Validar stock
-                if (!product.hasEnoughStock(sale.getCantidad())) {
-                    errors.add(product.getNombre() + " - Stock insuficiente. " +
-                             "Disponible: " + product.getStock() + ", Solicitado: " + sale.getCantidad());
+                if (!producto.hasEnoughStock(venta.getCantidad())) {
+                    errores.add(producto.getNombre() + " - Stock insuficiente. " +
+                             "Disponible: " + producto.getStock() + ", Solicitado: " + venta.getCantidad());
                 }
             }
         } catch (SQLException e) {
-            errors.add("Error al validar carrito: " + e.getMessage());
+            errores.add("Error al validar carrito: " + e.getMessage());
         }
         
-        return errors;
+        return errores;
     }
     
     // ==================== MÉTODOS AUXILIARES ====================
@@ -222,11 +232,11 @@ public class SaleService {
     /**
      * Calcula el monto total de una lista de ventas
      * 
-     * @param sales Lista de ventas
+     * @param ventas Lista de ventas
      * @return Suma total
      */
-    private double calculateTotalAmount(List<Sale> sales) {
-        return sales.stream()
+    private double calculateTotalAmount(List<Sale> ventas) {
+        return ventas.stream()
                     .mapToDouble(Sale::getTotal)
                     .sum();
     }
@@ -234,11 +244,11 @@ public class SaleService {
     /**
      * Calcula el total de unidades vendidas
      * 
-     * @param sales Lista de ventas
+     * @param ventas Lista de ventas
      * @return Suma de unidades
      */
-    private int calculateTotalUnits(List<Sale> sales) {
-        return sales.stream()
+    private int calculateTotalUnits(List<Sale> ventas) {
+        return ventas.stream()
                     .mapToInt(Sale::getCantidad)
                     .sum();
     }

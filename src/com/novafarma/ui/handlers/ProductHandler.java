@@ -41,25 +41,25 @@ public class ProductHandler {
         this.salesPanel = salesPanel;
     }
     
-    public void agregar() {
-        if (currentUser.isTrabajador()) {
+    public void agregar() { //Funcion para agregar un producto
+        if (currentUser.isTrabajador()) { // Si el usuario no es administrador, se muestra un mensaje de error
             JOptionPane.showMessageDialog(parent, Mensajes.SOLO_ADMIN, Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         // Usar diálogo dedicado en lugar de JOptionPane
-        Product nuevo = ProductDialog.showCreateDialog(parent);
+        Product nuevo = ProductDialog.showCreateDialog(parent); // Mostrar el diálogo para agregar un producto
         
         if (nuevo == null) {
-            return; // Usuario canceló
+            return; // Si el usuario cancela, se retorna
         }
         
         try {
             // Verificar si ya existe
             Product existente = productService.findProductByName(nuevo.getNombre());
-            if (existente != null) {
+            if (existente != null) { // Si el producto ya existe, se pregunta si se desea actualizar o crear uno nuevo
                 int respuesta = preguntarActualizarOcrear(nuevo.getNombre(), existente);
-                if (respuesta == 0) {
+                if (respuesta == 0) { // Si el usuario elige actualizar
                     // Actualizar existente con los datos del nuevo
                     existente.setNombre(nuevo.getNombre());
                     existente.setDescripcion(nuevo.getDescripcion());
@@ -69,7 +69,7 @@ public class ProductHandler {
                     actualizarExistente(existente);
                     return;
                 } else if (respuesta == 2) {
-                    return; // Cancelar
+                    return; // Si el usuario cancela, se retorna
                 }
             }
             
@@ -78,7 +78,7 @@ public class ProductHandler {
             
             if (exito) {
                 Product creado = productService.findProductByName(nuevo.getNombre());
-                if (creado != null && creado.isActivo()) {
+                if (creado != null && creado.isActivo()) { // Si el producto se creó correctamente, se agrega a la tabla
                     inventoryPanel.addProductRow(creado);
                 }
                 JOptionPane.showMessageDialog(parent, Mensajes.PRODUCTO_AGREGADO, Mensajes.TITULO_EXITO, JOptionPane.INFORMATION_MESSAGE);
@@ -103,12 +103,12 @@ public class ProductHandler {
             return;
         }
         
-        try {
+        try { 
             Integer productId = inventoryPanel.getSelectedProductId();
-            if (productId == null) return;
+            if (productId == null) return; // Si el producto no se selecciona, se retorna
             
             Product producto = productService.getProductById(productId);
-            if (producto == null) return;
+            if (producto == null) return; // Si el producto no se encuentra, se retorna
             
             // Usar diálogo dedicado en lugar de JOptionPane
             Product editado = ProductDialog.showEditDialog(parent, producto);
@@ -229,16 +229,16 @@ public class ProductHandler {
     
     private void eliminarProductoVencidoSeleccionado(int productoId) {
         try {
-            Product product = productService.getProductById(productoId);
-            if (product == null) {
+            Product producto = productService.getProductById(productoId);
+            if (producto == null) {
                 JOptionPane.showMessageDialog(parent, "Producto no encontrado", Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
-            String nombreProducto = product.getNombre();
-            long diasRestantes = product.getDaysUntilExpiration();
+            String nombreProducto = producto.getNombre();
+            long diasRestantes = producto.getDaysUntilExpiration();
             
-            int confirm = JOptionPane.showConfirmDialog(parent,
+            int confirmacion = JOptionPane.showConfirmDialog(parent,
                 "¿Retirar este producto del inventario?\n\n" +
                 "Producto: " + nombreProducto + "\n" +
                 "Estado: " + diasRestantes + "\n\n" +
@@ -249,10 +249,10 @@ public class ProductHandler {
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE);
             
-            if (confirm == JOptionPane.YES_OPTION) {
-                boolean success = productService.retireProduct(productoId);
+            if (confirmacion == JOptionPane.YES_OPTION) {
+                boolean exito = productService.retireProduct(productoId);
                 
-                if (success) {
+                if (exito) {
                     JOptionPane.showMessageDialog(parent,
                         "Producto desactivado exitosamente\n\n" +
                         "Producto: " + nombreProducto + "\n" +
@@ -277,8 +277,8 @@ public class ProductHandler {
     
     private void eliminarTodosLosVencidos() {
         try {
-            List<Product> productsExpired = productService.getExpiredProducts();
-            int totalVencidos = productsExpired.size();
+            List<Product> productosVencidos = productService.getExpiredProducts();
+            int totalVencidos = productosVencidos.size();
             
             if (totalVencidos == 0) {
                 JOptionPane.showMessageDialog(parent,
@@ -288,7 +288,7 @@ public class ProductHandler {
                 return;
             }
             
-            int confirm = JOptionPane.showConfirmDialog(parent,
+            int confirmacion = JOptionPane.showConfirmDialog(parent,
                 "RETIRAR PRODUCTOS VENCIDOS\n\n" +
                 "Se encontraron " + totalVencidos + " productos vencidos.\n\n" +
                 "Se marcarán como INACTIVOS (stock = 0, activo = FALSE)\n" +
@@ -298,7 +298,7 @@ public class ProductHandler {
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE);
             
-            if (confirm == JOptionPane.YES_OPTION) {
+            if (confirmacion == JOptionPane.YES_OPTION) {
                 int rowsUpdated = productService.retireAllExpiredProducts();
                 
                 JOptionPane.showMessageDialog(parent,

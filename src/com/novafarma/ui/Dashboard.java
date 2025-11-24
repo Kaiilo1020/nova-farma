@@ -13,6 +13,8 @@ import com.novafarma.ui.handlers.UserHandler;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Dashboard principal de la aplicación Nova Farma
@@ -130,9 +132,12 @@ public class Dashboard extends JFrame {
         tabbedPane.addTab("Inventario", inventoryPanel);
         tabbedPane.addTab("Ventas / Facturación", salesPanel);
         
-        if (currentUser.isAdministrador()) {
-            JPanel usersPanel = createUsersPanel();
+        if (currentUser.isAdministrador()) { // Si el usuario es administrador, se muestran los paneles de usuarios y historial de ventas
+            JPanel usersPanel = createUsersPanel(); // Crear el panel de usuarios
             tabbedPane.addTab("Usuarios", usersPanel);
+            
+            JPanel salesHistoryPanel = createSalesHistoryPanel();
+            tabbedPane.addTab("Historial de Ventas", salesHistoryPanel);
         }
         
         tabbedPane.addTab("Alertas", alertsPanel);
@@ -292,6 +297,142 @@ public class Dashboard extends JFrame {
         userHandler.cargarDatos();
         
         return panel;
+    }
+    
+    // ==================== PANEL DE HISTORIAL DE VENTAS ====================
+    
+    /**
+     * Crea el panel para ver el historial de ventas (solo administradores)
+     */
+    private JPanel createSalesHistoryPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Panel superior: Botón de actualizar
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        
+        JButton btnRefresh = new JButton("Actualizar");
+        styleButton(btnRefresh);
+        btnRefresh.addActionListener(e -> loadSalesHistory());
+        
+        btnPanel.add(btnRefresh);
+        panel.add(btnPanel, BorderLayout.NORTH);
+        
+        // Tabla de ventas
+        String[] columnNames = {"ID", "Producto ID", "Usuario ID", "Cantidad", "Precio Unit.", "Total", "Fecha Venta"};
+        DefaultTableModel salesTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Tabla solo lectura
+            }
+        };
+        
+        JTable salesTable = new JTable(salesTableModel);
+        salesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        salesTable.setRowHeight(25);
+        salesTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        salesTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        salesTable.setFillsViewportHeight(true);
+        
+        // Ajustar ancho de columnas
+        salesTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        salesTable.getColumnModel().getColumn(1).setPreferredWidth(100);
+        salesTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        salesTable.getColumnModel().getColumn(3).setPreferredWidth(80);
+        salesTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        salesTable.getColumnModel().getColumn(5).setPreferredWidth(100);
+        salesTable.getColumnModel().getColumn(6).setPreferredWidth(180);
+        
+        // Aplicar estilo de tabla
+        com.novafarma.util.TableStyleHelper.applyTableStyle(salesTable);
+        
+        JScrollPane scrollPane = new JScrollPane(salesTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Historial de Ventas"));
+        
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        // Panel inferior: Información
+        JLabel lblInfo = new JLabel(
+            "<html><body style='padding: 10px;'>" +
+            "<b>Nota:</b> Este historial muestra todas las ventas realizadas en el negocio.<br>" +
+            "Las ventas se ordenan por fecha (más recientes primero)." +
+            "</body></html>"
+        );
+        lblInfo.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblInfo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        
+        panel.add(lblInfo, BorderLayout.SOUTH);
+        
+        // Guardar referencia a la tabla para poder actualizarla
+        panel.putClientProperty("salesTable", salesTable);
+        panel.putClientProperty("salesTableModel", salesTableModel);
+        
+        // Cargar datos iniciales
+        loadSalesHistory(panel);
+        
+        return panel;
+    }
+    
+    /**
+     * Carga el historial de ventas en el panel
+     */
+    private void loadSalesHistory() {
+        // Buscar el panel de historial de ventas
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            Component comp = tabbedPane.getComponentAt(i);
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                JTable table = (JTable) panel.getClientProperty("salesTable");
+                if (table != null) {
+                    loadSalesHistory(panel);
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Carga el historial de ventas en un panel específico
+     */
+    private void loadSalesHistory(JPanel panel) {
+        JTable salesTable = (JTable) panel.getClientProperty("salesTable");
+        DefaultTableModel salesTableModel = (DefaultTableModel) panel.getClientProperty("salesTableModel");
+        
+        if (salesTable == null || salesTableModel == null) return;
+        
+        try {
+            salesTableModel.setRowCount(0);
+            
+            List<com.novafarma.model.Sale> ventas = saleService.getAllSales();
+            
+            for (com.novafarma.model.Sale venta : ventas) {
+                Object[] fila = {
+                    venta.getId(),
+                    venta.getProductoId(),
+                    venta.getUsuarioId(),
+                    venta.getCantidad(),
+                    String.format("$%.2f", venta.getPrecioUnitario()),
+                    String.format("$%.2f", venta.getTotal()),
+                    formatFecha(venta.getFechaVenta())
+                };
+                salesTableModel.addRow(fila);
+            }
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error al cargar el historial de ventas:\n" + e.getMessage(),
+                "Error de Base de Datos",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Formatea la fecha de venta para mostrar
+     */
+    private String formatFecha(java.sql.Timestamp fecha) {
+        if (fecha == null) return "N/A";
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(fecha);
     }
     
     

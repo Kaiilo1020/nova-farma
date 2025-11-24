@@ -25,21 +25,21 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Product> findAllActive() throws SQLException {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        List<Product> productos = new ArrayList<>();
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos WHERE activo = TRUE ORDER BY id ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                Product product = mapResultSetToProduct(rs);
-                products.add(product);
+            while (resultadoConsulta.next()) {
+                Product producto = mapearResultadoAProducto(resultadoConsulta);
+                productos.add(producto);
             }
         }
         
-        return products;
+        return productos;
     }
     
     /**
@@ -52,25 +52,25 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Product> findAllActive(int limit, int offset) throws SQLException {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        List<Product> productos = new ArrayList<>();
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos WHERE activo = TRUE ORDER BY id ASC LIMIT ? OFFSET ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, limit);
-            pstmt.setInt(2, offset);
+            consultaPreparada.setInt(1, limit);
+            consultaPreparada.setInt(2, offset);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Product product = mapResultSetToProduct(rs);
-                    products.add(product);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    Product producto = mapearResultadoAProducto(resultadoConsulta);
+                    productos.add(producto);
                 }
             }
         }
         
-        return products;
+        return productos;
     }
     
     /**
@@ -80,14 +80,14 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public int countAllActive() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE";
+        String consultaSQL = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            if (rs.next()) {
-                return rs.getInt("total");
+            if (resultadoConsulta.next()) {
+                return resultadoConsulta.getInt("total");
             }
         }
         
@@ -101,14 +101,14 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public int countActiveWithStock() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE AND stock > 0";
+        String consultaSQL = "SELECT COUNT(*) as total FROM productos WHERE activo = TRUE AND stock > 0";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            if (rs.next()) {
-                return rs.getInt("total");
+            if (resultadoConsulta.next()) {
+                return resultadoConsulta.getInt("total");
             }
         }
         
@@ -122,21 +122,21 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Product> findAll() throws SQLException {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        List<Product> productos = new ArrayList<>();
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos ORDER BY id ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                Product product = mapResultSetToProduct(rs);
-                products.add(product);
+            while (resultadoConsulta.next()) {
+                Product producto = mapearResultadoAProducto(resultadoConsulta);
+                productos.add(producto);
             }
         }
         
-        return products;
+        return productos;
     }
     
     /**
@@ -147,17 +147,17 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public Product findById(int id) throws SQLException {
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, id);
+            consultaPreparada.setInt(1, id);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToProduct(rs);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return mapearResultadoAProducto(resultadoConsulta);
                 }
             }
         }
@@ -179,20 +179,20 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public Product findByName(String nombre) throws SQLException {
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos " +
                      "WHERE LOWER(nombre) = LOWER(?) " +
                      "ORDER BY id DESC " +  // Ordenar por ID descendente para obtener el más reciente
                      "LIMIT 1";  // Solo tomar el primer resultado (el más reciente)
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, nombre.trim());
+            consultaPreparada.setString(1, nombre.trim());
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToProduct(rs);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return mapearResultadoAProducto(resultadoConsulta);
                 }
             }
         }
@@ -207,21 +207,21 @@ public class ProductDAO {
      * @return true si la inserción fue exitosa
      * @throws SQLException Si hay error en la inserción
      */
-    public boolean save(Product product) throws SQLException {
-        String sql = "INSERT INTO productos (nombre, descripcion, precio, stock, fecha_vencimiento, activo) " +
+    public boolean save(Product producto) throws SQLException {
+        String consultaSQL = "INSERT INTO productos (nombre, descripcion, precio, stock, fecha_vencimiento, activo) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, product.getNombre());
-            pstmt.setString(2, product.getDescripcion());
-            pstmt.setDouble(3, product.getPrecio());
-            pstmt.setInt(4, product.getStock());
-            pstmt.setDate(5, product.getFechaVencimiento());
-            pstmt.setBoolean(6, product.isActivo());
+            consultaPreparada.setString(1, producto.getNombre());
+            consultaPreparada.setString(2, producto.getDescripcion());
+            consultaPreparada.setDouble(3, producto.getPrecio());
+            consultaPreparada.setInt(4, producto.getStock());
+            consultaPreparada.setDate(5, producto.getFechaVencimiento());
+            consultaPreparada.setBoolean(6, producto.isActivo());
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -232,22 +232,22 @@ public class ProductDAO {
      * @return true si la actualización fue exitosa
      * @throws SQLException Si hay error en la actualización
      */
-    public boolean update(Product product) throws SQLException {
-        String sql = "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, " +
+    public boolean update(Product producto) throws SQLException {
+        String consultaSQL = "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, " +
                      "stock = ?, fecha_vencimiento = ?, activo = ? WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, product.getNombre());
-            pstmt.setString(2, product.getDescripcion());
-            pstmt.setDouble(3, product.getPrecio());
-            pstmt.setInt(4, product.getStock());
-            pstmt.setDate(5, product.getFechaVencimiento());
-            pstmt.setBoolean(6, product.isActivo());
-            pstmt.setInt(7, product.getId());
+            consultaPreparada.setString(1, producto.getNombre());
+            consultaPreparada.setString(2, producto.getDescripcion());
+            consultaPreparada.setDouble(3, producto.getPrecio());
+            consultaPreparada.setInt(4, producto.getStock());
+            consultaPreparada.setDate(5, producto.getFechaVencimiento());
+            consultaPreparada.setBoolean(6, producto.isActivo());
+            consultaPreparada.setInt(7, producto.getId());
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -260,13 +260,13 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la operación
      */
     public boolean softDelete(int id) throws SQLException {
-        String sql = "UPDATE productos SET activo = FALSE, stock = 0 WHERE id = ?";
+        String consultaSQL = "UPDATE productos SET activo = FALSE, stock = 0 WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            consultaPreparada.setInt(1, id);
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -281,13 +281,13 @@ public class ProductDAO {
      */
     @Deprecated
     public boolean delete(int id) throws SQLException {
-        String sql = "DELETE FROM productos WHERE id = ?";
+        String consultaSQL = "DELETE FROM productos WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            consultaPreparada.setInt(1, id);
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -298,25 +298,25 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Product> findExpiringSoon() throws SQLException {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        List<Product> productos = new ArrayList<>();
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos " +
                      "WHERE fecha_vencimiento IS NOT NULL " +
                      "  AND fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' " +
                      "  AND activo = TRUE " +
                      "ORDER BY fecha_vencimiento ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                Product product = mapResultSetToProduct(rs);
-                products.add(product);
+            while (resultadoConsulta.next()) {
+                Product producto = mapearResultadoAProducto(resultadoConsulta);
+                productos.add(producto);
             }
         }
         
-        return products;
+        return productos;
     }
     
     /**
@@ -326,24 +326,24 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<Product> findExpired() throws SQLException {
-        List<Product> products = new ArrayList<>();
-        String sql = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
+        List<Product> productos = new ArrayList<>();
+        String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +
                      "FROM productos " +
                      "WHERE fecha_vencimiento < CURRENT_DATE " +
                      "  AND activo = TRUE " +
                      "ORDER BY fecha_vencimiento ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                Product product = mapResultSetToProduct(rs);
-                products.add(product);
+            while (resultadoConsulta.next()) {
+                Product producto = mapearResultadoAProducto(resultadoConsulta);
+                productos.add(producto);
             }
         }
         
-        return products;
+        return productos;
     }
     
     /**
@@ -353,14 +353,14 @@ public class ProductDAO {
      * @throws SQLException Si hay error en la operación
      */
     public int softDeleteAllExpired() throws SQLException {
-        String sql = "UPDATE productos " +
+        String consultaSQL = "UPDATE productos " +
                      "SET activo = FALSE, stock = 0 " +
                      "WHERE fecha_vencimiento < CURRENT_DATE AND activo = TRUE";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement()) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement()) {
             
-            return stmt.executeUpdate(sql);
+            return consulta.executeUpdate(consultaSQL);
         }
     }
     
@@ -369,18 +369,18 @@ public class ProductDAO {
     /**
      * Mapea un ResultSet a un objeto Product
      * 
-     * @param rs ResultSet con datos del producto
+     * @param resultadoConsulta ResultSet con datos del producto
      * @return Objeto Product
      * @throws SQLException Si hay error al leer los datos
      */
-    private Product mapResultSetToProduct(ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        String nombre = rs.getString("nombre");
-        String descripcion = rs.getString("descripcion");
-        double precio = rs.getDouble("precio");
-        int stock = rs.getInt("stock");
-        Date fechaVencimiento = rs.getDate("fecha_vencimiento");
-        boolean activo = rs.getBoolean("activo");
+    private Product mapearResultadoAProducto(ResultSet resultadoConsulta) throws SQLException {
+        int id = resultadoConsulta.getInt("id");
+        String nombre = resultadoConsulta.getString("nombre");
+        String descripcion = resultadoConsulta.getString("descripcion");
+        double precio = resultadoConsulta.getDouble("precio");
+        int stock = resultadoConsulta.getInt("stock");
+        Date fechaVencimiento = resultadoConsulta.getDate("fecha_vencimiento");
+        boolean activo = resultadoConsulta.getBoolean("activo");
         
         return new Product(id, nombre, descripcion, precio, stock, fechaVencimiento, activo);
     }

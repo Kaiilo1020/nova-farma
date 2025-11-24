@@ -30,18 +30,18 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public User authenticate(String username, String passwordHash) throws SQLException {
-        String sql = "SELECT id, username, password_hash, rol FROM usuarios " +
+        String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios " +
                      "WHERE username = ? AND password_hash = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, username);
-            pstmt.setString(2, passwordHash);
+            consultaPreparada.setString(1, username);
+            consultaPreparada.setString(2, passwordHash);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToUser(rs);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return mapearResultadoAUsuario(resultadoConsulta);
                 }
             }
         }
@@ -57,16 +57,16 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public User findByUsername(String username) throws SQLException {
-        String sql = "SELECT id, username, password_hash, rol FROM usuarios WHERE username = ?";
+        String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios WHERE username = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, username);
+            consultaPreparada.setString(1, username);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToUser(rs);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return mapearResultadoAUsuario(resultadoConsulta);
                 }
             }
         }
@@ -82,16 +82,16 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public User findById(int id) throws SQLException {
-        String sql = "SELECT id, username, password_hash, rol FROM usuarios WHERE id = ?";
+        String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, id);
+            consultaPreparada.setInt(1, id);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToUser(rs);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return mapearResultadoAUsuario(resultadoConsulta);
                 }
             }
         }
@@ -106,20 +106,20 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<User> findAll() throws SQLException {
-        List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, password_hash, rol FROM usuarios ORDER BY id ASC";
+        List<User> usuarios = new ArrayList<>();
+        String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios ORDER BY id ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                User user = mapResultSetToUser(rs);
-                users.add(user);
+            while (resultadoConsulta.next()) {
+                User usuario = mapearResultadoAUsuario(resultadoConsulta);
+                usuarios.add(usuario);
             }
         }
         
-        return users;
+        return usuarios;
     }
     
     /**
@@ -132,24 +132,24 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public List<User> findAll(int limit, int offset) throws SQLException {
-        List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, password_hash, rol FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?";
+        List<User> usuarios = new ArrayList<>();
+        String consultaSQL = "SELECT id, username, password_hash, rol FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, limit);
-            pstmt.setInt(2, offset);
+            consultaPreparada.setInt(1, limit);
+            consultaPreparada.setInt(2, offset);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    User user = mapResultSetToUser(rs);
-                    users.add(user);
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                while (resultadoConsulta.next()) {
+                    User usuario = mapearResultadoAUsuario(resultadoConsulta);
+                    usuarios.add(usuario);
                 }
             }
         }
         
-        return users;
+        return usuarios;
     }
     
     /**
@@ -159,14 +159,14 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public int countAll() throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM usuarios";
+        String consultaSQL = "SELECT COUNT(*) as total FROM usuarios";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            if (rs.next()) {
-                return rs.getInt("total");
+            if (resultadoConsulta.next()) {
+                return resultadoConsulta.getInt("total");
             }
         }
         
@@ -181,28 +181,28 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public Map<Integer, Integer> findAllWithSalesCount() throws SQLException {
-        Map<Integer, Integer> salesCountMap = new HashMap<>();
+        Map<Integer, Integer> mapaConteoVentas = new HashMap<>();
         
         // Query optimizada: LEFT JOIN para traer usuarios y conteo de ventas en una sola consulta
-        String sql = "SELECT u.id, u.username, u.password_hash, u.rol, " +
+        String consultaSQL = "SELECT u.id, u.username, u.password_hash, u.rol, " +
                      "COALESCE(COUNT(v.id), 0) as ventas_count " +
                      "FROM usuarios u " +
                      "LEFT JOIN ventas v ON u.id = v.usuario_id " +
                      "GROUP BY u.id, u.username, u.password_hash, u.rol " +
                      "ORDER BY u.id ASC";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             Statement consulta = conexion.createStatement();
+             ResultSet resultadoConsulta = consulta.executeQuery(consultaSQL)) {
             
-            while (rs.next()) {
-                int userId = rs.getInt("id");
-                int salesCount = rs.getInt("ventas_count");
-                salesCountMap.put(userId, salesCount);
+            while (resultadoConsulta.next()) {
+                int idUsuario = resultadoConsulta.getInt("id");
+                int conteoVentas = resultadoConsulta.getInt("ventas_count");
+                mapaConteoVentas.put(idUsuario, conteoVentas);
             }
         }
         
-        return salesCountMap;
+        return mapaConteoVentas;
     }
     
     /**
@@ -214,17 +214,17 @@ public class UserDAO {
      * @return true si la creación fue exitosa
      * @throws SQLException Si hay error (ej: username duplicado)
      */
-    public boolean save(User user) throws SQLException {
-        String sql = "INSERT INTO usuarios (username, password_hash, rol) VALUES (?, ?, ?::user_role)";
+    public boolean save(User usuario) throws SQLException {
+        String consultaSQL = "INSERT INTO usuarios (username, password_hash, rol) VALUES (?, ?, ?::user_role)";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, user.getUsername());
-            pstmt.setString(2, user.getPasswordHash());
-            pstmt.setString(3, user.getRol().name());
+            consultaPreparada.setString(1, usuario.getUsername());
+            consultaPreparada.setString(2, usuario.getPasswordHash());
+            consultaPreparada.setString(3, usuario.getRol().name());
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -237,15 +237,15 @@ public class UserDAO {
      * @throws SQLException Si hay error en la actualización
      */
     public boolean updatePassword(String username, String newPasswordHash) throws SQLException {
-        String sql = "UPDATE usuarios SET password_hash = ? WHERE username = ?";
+        String consultaSQL = "UPDATE usuarios SET password_hash = ? WHERE username = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, newPasswordHash);
-            pstmt.setString(2, username);
+            consultaPreparada.setString(1, newPasswordHash);
+            consultaPreparada.setString(2, username);
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -260,15 +260,15 @@ public class UserDAO {
      */
     @Deprecated
     public boolean updateRole(int userId, UserRole newRole) throws SQLException {
-        String sql = "UPDATE usuarios SET rol = ?::user_role WHERE id = ?";
+        String consultaSQL = "UPDATE usuarios SET rol = ?::user_role WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, newRole.name());
-            pstmt.setInt(2, userId);
+            consultaPreparada.setString(1, newRole.name());
+            consultaPreparada.setInt(2, userId);
             
-            return pstmt.executeUpdate() > 0;
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -281,13 +281,13 @@ public class UserDAO {
      * @throws SQLException Si hay error (ej: violación de FK)
      */
     public boolean delete(int id) throws SQLException {
-        String sql = "DELETE FROM usuarios WHERE id = ?";
+        String consultaSQL = "DELETE FROM usuarios WHERE id = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            consultaPreparada.setInt(1, id);
+            return consultaPreparada.executeUpdate() > 0;
         }
     }
     
@@ -299,16 +299,16 @@ public class UserDAO {
      * @throws SQLException Si hay error en la consulta
      */
     public boolean existsByUsername(String username) throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM usuarios WHERE username = ?";
+        String consultaSQL = "SELECT COUNT(*) as total FROM usuarios WHERE username = ?";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, username);
+            consultaPreparada.setString(1, username);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total") > 0;
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return resultadoConsulta.getInt("total") > 0;
                 }
             }
         }
@@ -326,16 +326,16 @@ public class UserDAO {
      */
     @Deprecated
     public int countByRole(UserRole role) throws SQLException {
-        String sql = "SELECT COUNT(*) as total FROM usuarios WHERE rol = ?::user_role";
+        String consultaSQL = "SELECT COUNT(*) as total FROM usuarios WHERE rol = ?::user_role";
         
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conexion = DatabaseConnection.getConnection();
+             PreparedStatement consultaPreparada = conexion.prepareStatement(consultaSQL)) {
             
-            pstmt.setString(1, role.name());
+            consultaPreparada.setString(1, role.name());
             
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("total");
+            try (ResultSet resultadoConsulta = consultaPreparada.executeQuery()) {
+                if (resultadoConsulta.next()) {
+                    return resultadoConsulta.getInt("total");
                 }
             }
         }
@@ -352,16 +352,16 @@ public class UserDAO {
      * @return Objeto User
      * @throws SQLException Si hay error al leer los datos
      */
-    private User mapResultSetToUser(ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        String username = rs.getString("username");
-        String passwordHash = rs.getString("password_hash");
-        String rolString = rs.getString("rol");
+    private User mapearResultadoAUsuario(ResultSet resultadoConsulta) throws SQLException {
+        int id = resultadoConsulta.getInt("id");
+        String username = resultadoConsulta.getString("username");
+        String passwordHash = resultadoConsulta.getString("password_hash");
+        String rolString = resultadoConsulta.getString("rol");
         
         // Convertir String a UserRole enum
-        UserRole role = UserRole.valueOf(rolString);
+        UserRole rol = UserRole.valueOf(rolString);
         
-        return new User(id, username, passwordHash, role);
+        return new User(id, username, passwordHash, rol);
     }
 }
 

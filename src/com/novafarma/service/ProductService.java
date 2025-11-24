@@ -133,43 +133,43 @@ public class ProductService {
     /**
      * Crea un nuevo producto con validaciones de negocio
      * 
-     * @param product Producto a crear
+     * @param producto Producto a crear
      * @return true si la creación fue exitosa
      * @throws IllegalArgumentException Si los datos no son válidos
      * @throws SQLException Si hay error en la BD
      */
-    public boolean createProduct(Product product) throws SQLException {
+    public boolean createProduct(Product producto) throws SQLException {
         // Validaciones de negocio
-        validateProduct(product);
+        validateProduct(producto);
         
         // Si tiene stock > 0, debe estar activo
-        if (product.getStock() > 0) {
-            product.setActivo(true);
+        if (producto.getStock() > 0) {
+            producto.setActivo(true);
         }
         
         // Delegar al DAO
-        return productDAO.save(product);
+        return productDAO.save(producto);
     }
     
     /**
      * Actualiza un producto existente con validaciones
      * 
-     * @param product Producto con datos actualizados
+     * @param producto Producto con datos actualizados
      * @return true si la actualización fue exitosa
      * @throws IllegalArgumentException Si los datos no son válidos
      * @throws SQLException Si hay error en la BD
      */
-    public boolean updateProduct(Product product) throws SQLException {
+    public boolean updateProduct(Product producto) throws SQLException {
         // Validaciones de negocio
-        validateProduct(product);
+        validateProduct(producto);
         
         // REGLA DE NEGOCIO: Si el stock es > 0, activar el producto automáticamente
-        if (product.getStock() > 0) {
-            product.setActivo(true);
+        if (producto.getStock() > 0) {
+            producto.setActivo(true);
         }
         
         // Delegar al DAO
-        return productDAO.update(product);
+        return productDAO.update(producto);
     }
     
     /**
@@ -201,23 +201,23 @@ public class ProductService {
     /**
      * Valida que un producto cumpla las reglas de negocio
      * 
-     * @param product Producto a validar
+     * @param producto Producto a validar
      * @throws IllegalArgumentException Si alguna validación falla
      */
-    private void validateProduct(Product product) {
-        if (product == null) {
+    private void validateProduct(Product producto) {
+        if (producto == null) {
             throw new IllegalArgumentException("El producto no puede ser nulo");
         }
         
-        if (product.getNombre() == null || product.getNombre().trim().isEmpty()) {
+        if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre del producto es obligatorio");
         }
         
-        if (product.getPrecio() <= 0) {
+        if (producto.getPrecio() <= 0) {
             throw new IllegalArgumentException("El precio debe ser mayor a 0");
         }
         
-        if (product.getStock() < 0) {
+        if (producto.getStock() < 0) {
             throw new IllegalArgumentException("El stock no puede ser negativo");
         }
         
@@ -232,30 +232,30 @@ public class ProductService {
      * - Tiene stock disponible
      * - Tiene suficiente stock para la cantidad solicitada
      * 
-     * @param product Producto a validar
-     * @param quantityRequested Cantidad solicitada
+     * @param producto Producto a validar
+     * @param cantidadSolicitada Cantidad solicitada
      * @throws IllegalStateException Si el producto no es vendible
      */
-    public void validateSellableProduct(Product product, int quantityRequested) {
-        if (product == null) {
+    public void validateSellableProduct(Product producto, int cantidadSolicitada) {
+        if (producto == null) {
             throw new IllegalStateException("El producto no existe");
         }
         
-        if (!product.isActivo()) {
+        if (!producto.isActivo()) {
             throw new IllegalStateException("El producto está inactivo");
         }
         
-        if (product.isExpired()) {
-            throw new IllegalStateException("El producto está vencido: " + product.getNombre());
+        if (producto.isExpired()) {
+            throw new IllegalStateException("El producto está vencido: " + producto.getNombre());
         }
         
-        if (!product.hasStock()) {
+        if (!producto.hasStock()) {
             throw new IllegalStateException("El producto no tiene stock disponible");
         }
         
-        if (!product.hasEnoughStock(quantityRequested)) {
-            throw new IllegalStateException("Stock insuficiente. Disponible: " + product.getStock() + 
-                                          ", Solicitado: " + quantityRequested);
+        if (!producto.hasEnoughStock(cantidadSolicitada)) {
+            throw new IllegalStateException("Stock insuficiente. Disponible: " + producto.getStock() + 
+                                          ", Solicitado: " + cantidadSolicitada);
         }
     }
 }
