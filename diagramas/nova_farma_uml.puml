@@ -1,0 +1,460 @@
+@startuml Nova Farma - Diagrama de Clases UML
+
+' ============================================
+' CONFIGURACIÓN DE COLORES Y ESTILOS
+' ============================================
+!define MODEL_COLOR #E1F5FF
+!define DAO_COLOR #E8F5E9
+!define SERVICE_COLOR #FFF3E0
+!define UI_COLOR #FCE4EC
+!define UTIL_COLOR #F3E5F5
+!define CONFIG_COLOR #E0F2F1
+
+' Configuración de estilo para líneas rectas y espaciado MEJORADO
+skinparam linetype ortho
+skinparam nodesep 80
+skinparam ranksep 150
+skinparam packageStyle rectangle
+skinparam packagePadding 20
+skinparam classPadding 10
+
+skinparam class {
+    BackgroundColor white
+    BorderColor black
+    ArrowColor #333333
+    FontSize 11
+    Padding 8
+    RoundCorner 5
+}
+
+skinparam package {
+    BackgroundColor<<MODEL>> MODEL_COLOR
+    BackgroundColor<<DAO>> DAO_COLOR
+    BackgroundColor<<SERVICE>> SERVICE_COLOR
+    BackgroundColor<<UI>> UI_COLOR
+    BackgroundColor<<UTIL>> UTIL_COLOR
+    BackgroundColor<<CONFIG>> CONFIG_COLOR
+    BorderColor black
+    BorderThickness 2
+    FontSize 12
+    FontStyle bold
+    Padding 15
+}
+
+' ============================================
+' NIVEL 1: PUNTO DE ENTRADA (LO MÁS PRINCIPAL)
+' ============================================
+package "1. PUNTO DE ENTRADA" <<UI>> {
+    class MainApp {
+        +main(String[]): void
+    }
+}
+
+' ============================================
+' NIVEL 2: AUTENTICACIÓN
+' ============================================
+package "2. AUTENTICACIÓN" <<UI>> {
+    class LoginFrame {
+        -txtUsername: JTextField
+        -txtPassword: JPasswordField
+        --
+        +LoginFrame()
+        -performLogin(): void
+        -openDashboard(User): void
+    }
+}
+
+' ============================================
+' NIVEL 3: PANEL PRINCIPAL
+' ============================================
+package "3. PANEL PRINCIPAL" <<UI>> {
+    class Dashboard {
+        -currentUser: User
+        -inventoryPanel: InventoryPanel
+        -salesPanel: SalesPanel
+        -alertsPanel: AlertsPanel
+        --
+        +Dashboard(User)
+        -createInventoryPanel(): JPanel
+        -createSalesPanel(): JPanel
+        -createUsersPanel(): JPanel
+        -createSalesHistoryPanel(): JPanel
+    }
+}
+
+' ============================================
+' NIVEL 4: PANELES DE FUNCIONALIDAD
+' ============================================
+package "4. PANELES DE FUNCIONALIDAD" <<UI>> {
+    class InventoryPanel {
+        -tableModel: DefaultTableModel
+        -productTable: JTable
+        --
+        +updateProductRow(Product): void
+        +addProductRow(Product): void
+        +removeProductRow(int): void
+    }
+    
+    class SalesPanel {
+        -catalogTable: JTable
+        -cartTable: JTable
+        --
+        +cargarCatalogo(): void
+        +addToCart(): void
+        +processSale(): void
+    }
+    
+    class AlertsPanel {
+        -alertsTable: JTable
+        --
+        +loadAlerts(): void
+    }
+}
+
+' ============================================
+' NIVEL 5: CONTROLADORES (HANDLERS)
+' ============================================
+package "5. CONTROLADORES" <<UI>> {
+    class ProductHandler {
+        -productService: ProductService
+        -inventoryPanel: InventoryPanel
+        --
+        +agregar(): void
+        +editar(): void
+        +eliminar(): void
+        +eliminarVencidos(): void
+    }
+    
+    class UserHandler {
+        -userService: UserService
+        -usersTableModel: DefaultTableModel
+        --
+        +crear(): void
+        +eliminar(): void
+        +cargarDatos(): void
+        +cargarDatosPaginated(): void
+    }
+}
+
+' ============================================
+' NIVEL 6: DIÁLOGOS
+' ============================================
+package "6. DIÁLOGOS" <<UI>> {
+    class ProductDialog {
+        -txtNombre: JTextField
+        -txtPrecio: JTextField
+        -txtStock: JTextField
+        --
+        +ProductDialog(Frame, Product)
+        +getProduct(): Product
+    }
+    
+    class UserCreationDialog {
+        -txtUsername: JTextField
+        -txtPassword: JPasswordField
+        --
+        +UserCreationDialog(Frame)
+        +getUser(): User
+    }
+}
+
+' ============================================
+' NIVEL 7: CAPA DE SERVICIOS (LÓGICA DE NEGOCIO)
+' ============================================
+package "7. SERVICIOS - LÓGICA DE NEGOCIO" <<SERVICE>> {
+    class ProductService {
+        -ProductDAO productDAO
+        --
+        +getAllActiveProducts(): List<Product>
+        +getActiveProductsPaginated(int, int): List<Product>
+        +getProductById(int): Product
+        +getProductByName(String): Product
+        +countActiveProducts(): int
+        +countActiveProductsWithStock(): int
+        +createProduct(Product): boolean
+        +updateProduct(Product): boolean
+        +retireProduct(int): boolean
+        +validateSellableProduct(Product, int)
+        -validateProduct(Product)
+    }
+    
+    class UserService {
+        -UserDAO userDAO
+        --
+        +getAllUsers(): List<User>
+        +getUsersPaginated(int, int): List<User>
+        +countAllUsers(): int
+        +getAllUsersSalesCount(): Map<Integer, Integer>
+        +createUser(User): boolean
+        +deleteUser(int): boolean
+    }
+    
+    class SaleService {
+        -SaleDAO saleDAO
+        -ProductDAO productDAO
+        -ProductService productService
+        --
+        +getAllSales(): List<Sale>
+        +getSalesPaginated(int, int): List<Sale>
+        +countAllSales(): int
+        +processSale(Sale): boolean
+        +processMultipleSales(List<Sale>): SaleResult
+        +validateCart(List<Sale>): List<String>
+    }
+}
+
+' ============================================
+' NIVEL 8: CAPA DE ACCESO A DATOS (DAO)
+' ============================================
+package "8. ACCESO A DATOS - DAO" <<DAO>> {
+    class ProductDAO {
+        +save(Product): boolean
+        +update(Product): boolean
+        +findById(int): Product
+        +findByName(String): Product
+        +findAllActive(): List<Product>
+        +findAllActive(int, int): List<Product>
+        +countAllActive(): int
+        +countActiveWithStock(): int
+        +softDelete(int): boolean
+        +findExpiringSoon(): List<Product>
+        +findExpired(): List<Product>
+        +softDeleteAllExpired(): int
+        -mapearResultadoAProducto(ResultSet): Product
+    }
+    
+    class UserDAO {
+        +authenticate(String, String): User
+        +findByUsername(String): User
+        +findById(int): User
+        +findAll(): List<User>
+        +findAll(int, int): List<User>
+        +findAllWithSalesCount(): Map<Integer, Integer>
+        +countAll(): int
+        +save(User): boolean
+        +delete(int): boolean
+        -mapearResultadoAUsuario(ResultSet): User
+    }
+    
+    class SaleDAO {
+        +save(Sale): boolean
+        +saveAll(List<Sale>): boolean
+        +findAll(): List<Sale>
+        +findAll(int, int): List<Sale>
+        +findByUserId(int): List<Sale>
+        +countAll(): int
+        -mapearResultadoAVenta(ResultSet): Sale
+    }
+}
+
+' ============================================
+' NIVEL 9: MODELOS (ENTIDADES)
+' ============================================
+package "9. MODELOS - ENTIDADES" <<MODEL>> {
+    class Product {
+        -int id
+        -String nombre
+        -String descripcion
+        -double precio
+        -int stock
+        -Date fechaVencimiento
+        -boolean activo
+        --
+        +Product()
+        +Product(...)
+        +getId(): int
+        +getNombre(): String
+        +setNombre(String)
+        +getPrecio(): double
+        +getStock(): int
+        +isExpired(): boolean
+        +getDaysUntilExpiration(): long
+        +hasStock(): boolean
+        +hasEnoughStock(int): boolean
+    }
+    
+    class User {
+        -int id
+        -String username
+        -String passwordHash
+        -UserRole rol
+        --
+        +User()
+        +User(...)
+        +getId(): int
+        +getUsername(): String
+        +isAdministrador(): boolean
+        +isTrabajador(): boolean
+    }
+    
+    enum UserRole {
+        ADMINISTRADOR
+        TRABAJADOR
+        +getDisplayName(): String
+        +fromString(String): UserRole
+    }
+    
+    class Sale {
+        -int id
+        -int productoId
+        -int usuarioId
+        -int cantidad
+        -double precioUnitario
+        -double total
+        -Timestamp fechaVenta
+        --
+        +Sale()
+        +Sale(...)
+        +calculateTotal(): double
+        +updateTotal(): void
+        +isValid(): boolean
+    }
+    
+    User "1" *-- "1" UserRole
+}
+
+' ============================================
+' UTILIDADES (LADO DERECHO)
+' ============================================
+package "UTILIDADES" <<UTIL>> {
+    class DatabaseConnection {
+        -connection: Connection
+        --
+        +getConnection(): Connection
+        +closeConnection(): void
+        +isConnected(): boolean
+    }
+    
+    class SecurityHelper {
+        +encryptPassword(String): String
+    }
+    
+    class PaginationHelper {
+        +{static} DEFAULT_PAGE_SIZE: int
+        +{static} calculateOffset(int, int): int
+        +{static} calculateTotalPages(int, int): int
+        +{static} validatePageNumber(int, int): int
+        +{static} getDisplayRange(int, int, int): String
+    }
+    
+    class TableStyleHelper {
+        +{static} applyTableStyle(JTable): void
+    }
+    
+    class Mensajes {
+        +{static} SUCCESS_*: String
+        +{static} ERROR_*: String
+        +{static} VALIDATION_*: String
+        +{static} TITULO_*: String
+    }
+}
+
+' ============================================
+' CONFIGURACIÓN (LADO IZQUIERDO)
+' ============================================
+package "CONFIGURACIÓN" <<CONFIG>> {
+    class DatabaseConfig {
+        +{static} DB_HOST: String
+        +{static} DB_PORT: String
+        +{static} DB_NAME: String
+        +{static} DB_USER: String
+        +{static} DB_PASSWORD: String
+        +{static} getConnectionUrl(): String
+    }
+}
+
+' ============================================
+' RELACIONES JERÁRQUICAS (DE ARRIBA HACIA ABAJO)
+' ============================================
+
+' --- FLUJO PRINCIPAL DE EJECUCIÓN ---
+MainApp -down-> LoginFrame : "inicia"
+LoginFrame -down-> Dashboard : "abre"
+Dashboard -down-> InventoryPanel : "contiene"
+Dashboard -down-> SalesPanel : "contiene"
+Dashboard -down-> AlertsPanel : "contiene"
+
+' --- CONTROLADORES USAN PANELES ---
+ProductHandler -down-> InventoryPanel : "maneja"
+ProductHandler -down-> ProductDialog : "usa"
+UserHandler -down-> UserCreationDialog : "usa"
+
+' --- CONTROLADORES USAN SERVICIOS ---
+ProductHandler -down-> ProductService : "usa"
+UserHandler -down-> UserService : "usa"
+Dashboard -down-> ProductService : "usa"
+Dashboard -down-> UserService : "usa"
+Dashboard -down-> SaleService : "usa"
+SalesPanel -down-> SaleService : "usa"
+
+' --- SERVICIOS USAN DAOs ---
+ProductService -down-> ProductDAO : "usa"
+UserService -down-> UserDAO : "usa"
+SaleService -down-> SaleDAO : "usa"
+SaleService -down-> ProductDAO : "usa"
+SaleService -down-> ProductService : "usa"
+
+' --- DAOs MANEJAN MODELOS ---
+ProductDAO -down-> Product : "maneja"
+UserDAO -down-> User : "maneja"
+SaleDAO -down-> Sale : "maneja"
+
+' --- UI CREA/MANEJA MODELOS ---
+Dashboard -down-> User : "contiene"
+LoginFrame -down-> User : "crea"
+ProductDialog -down-> Product : "crea/edita"
+UserCreationDialog -down-> User : "crea"
+
+' --- RELACIONES CON UTILIDADES (HORIZONTALES) ---
+InventoryPanel -right-> PaginationHelper : "usa"
+InventoryPanel -right-> TableStyleHelper : "usa"
+InventoryPanel -right-> Mensajes : "usa"
+SalesPanel -right-> PaginationHelper : "usa"
+SalesPanel -right-> TableStyleHelper : "usa"
+AlertsPanel -right-> TableStyleHelper : "usa"
+Dashboard -right-> TableStyleHelper : "usa"
+UserHandler -right-> PaginationHelper : "usa"
+UserHandler -right-> Mensajes : "usa"
+ProductHandler -right-> Mensajes : "usa"
+LoginFrame -right-> SecurityHelper : "usa"
+
+' --- RELACIONES CON CONFIGURACIÓN ---
+DatabaseConnection -left-> DatabaseConfig : "usa"
+
+' --- DAOs USAN CONEXIÓN ---
+ProductDAO -left-> DatabaseConnection : "usa"
+UserDAO -left-> DatabaseConnection : "usa"
+SaleDAO -left-> DatabaseConnection : "usa"
+
+' ============================================
+' NOTAS EXPLICATIVAS
+' ============================================
+note right of PaginationHelper
+  Utilizado para:
+  - InventoryPanel
+  - SalesPanel
+  - UserHandler
+end note
+
+note right of TableStyleHelper
+  Aplica estilos consistentes
+  a todas las tablas de la UI
+end note
+
+note right of Mensajes
+  Centraliza todos los mensajes
+  de la aplicación para
+  facilitar mantenimiento
+end note
+
+note right of SecurityHelper
+  Encriptación SHA-256
+  para contraseñas
+end note
+
+note left of DatabaseConfig
+  Configuración centralizada
+  de conexión a PostgreSQL
+end note
+
+@enduml

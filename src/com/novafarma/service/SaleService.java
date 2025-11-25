@@ -9,93 +9,43 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Servicio de lógica de negocio para Ventas
- * 
- * Responsabilidades:
- * - Validación de ventas (stock, vencimiento)
- * - Orquestación de transacciones de venta
- * - Cálculo de totales
- * - Coordinación entre ProductDAO y SaleDAO
- * 
- * IMPORTANTE: El trigger de PostgreSQL actualiza automáticamente
- * el stock al insertar una venta. Java NO debe hacerlo.
- * 
- * @author Nova Farma Development Team
- * @version 1.0
- */
+/** Servicio de lógica de negocio para Ventas (el trigger actualiza stock automáticamente) */
 public class SaleService {
     
     private final SaleDAO saleDAO;
     private final ProductDAO productDAO;
     private final ProductService productService;
     
-    /**
-     * Constructor
-     */
     public SaleService() {
         this.saleDAO = new SaleDAO();
         this.productDAO = new ProductDAO();
         this.productService = new ProductService();
     }
     
-    // ==================== CONSULTAS ====================
-    
-    /**
-     * Obtiene todas las ventas
-     * 
-     * @return Lista de ventas
-     * @throws SQLException Si hay error en la consulta
-     */
-    public List<Sale> getAllSales() throws SQLException {
-        return saleDAO.findAll();
+    /** Obtiene todas las ventas */
+    public List<Sale> obtenerTodasLasVentas() throws SQLException {
+        return saleDAO.obtenerTodasLasVentas();
     }
     
-    /**
-     * Obtiene ventas con paginación
-     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
-     * 
-     * @param limit Número máximo de registros a retornar
-     * @param offset Número de registros a saltar (para paginación)
-     * @return Lista de ventas
-     * @throws SQLException Si hay error en la consulta
-     */
-    public List<Sale> getSalesPaginated(int limit, int offset) throws SQLException {
-        return saleDAO.findAll(limit, offset);
+    /** Obtiene ventas con paginación */
+    public List<Sale> obtenerVentasPaginadas(int limit, int offset) throws SQLException {
+        return saleDAO.obtenerVentasPaginadas(limit, offset);
     }
     
-    /**
-     * Obtiene ventas de un usuario específico
-     * 
-     * @param userId ID del usuario
-     * @return Lista de ventas del usuario
-     * @throws SQLException Si hay error en la consulta
-     */
-    public List<Sale> getSalesByUser(int userId) throws SQLException {
-        return saleDAO.findByUserId(userId);
+    /** Obtiene ventas de un usuario */
+    public List<Sale> obtenerVentasPorUsuario(int userId) throws SQLException {
+        return saleDAO.obtenerVentasPorUsuario(userId);
     }
     
-    /**
-     * Cuenta el número total de ventas
-     * 
-     * @return Número total de ventas
-     * @throws SQLException Si hay error en la consulta
-     */
-    public int countAllSales() throws SQLException {
-        return saleDAO.countAll();
+    /** Cuenta ventas */
+    public int contarVentas() throws SQLException {
+        return saleDAO.contarVentas();
     }
     
-    /**
-     * Obtiene el total de ingresos
-     * 
-     * @return Suma total de todas las ventas
-     * @throws SQLException Si hay error en la consulta
-     */
-    public double getTotalRevenue() throws SQLException {
-        return saleDAO.calculateTotalRevenue();
+    /** Obtiene total de ingresos */
+    public double obtenerIngresosTotales() throws SQLException {
+        return saleDAO.calcularIngresosTotales();
     }
-    
-    // ==================== OPERACIONES DE VENTA ====================
     
     /**
      * Procesa una venta individual
@@ -105,21 +55,21 @@ public class SaleService {
      * @throws IllegalStateException Si la validación falla
      * @throws SQLException Si hay error en la BD
      */
-    public boolean processSale(Sale venta) throws SQLException {
+    public boolean procesarVenta(Sale venta) throws SQLException {
         // Validar datos de la venta
-        if (!venta.isValid()) {
+        if (!venta.esValida()) {
             throw new IllegalStateException("Datos de venta inválidos");
         }
         
         // Obtener producto y validar
-        Product producto = productDAO.findById(venta.getProductoId());
-        productService.validateSellableProduct(producto, venta.getCantidad());
+        Product producto = productDAO.buscarProductoPorId(venta.getProductoId());
+        productService.validarProductoVendible(producto, venta.getCantidad());
         
         // Asegurar que el total esté actualizado
-        venta.updateTotal();
+        venta.actualizarTotal();
         
         // Registrar venta (el trigger actualiza el stock automáticamente)
-        return saleDAO.save(venta);
+        return saleDAO.guardarVenta(venta);
     }
     
     /**
@@ -129,7 +79,7 @@ public class SaleService {
      * @param sales Lista de ventas a procesar
      * @return SaleResult con el resultado de la operación
      */
-    public SaleResult processMultipleSales(List<Sale> ventas) {
+    public SaleResult procesarVentasMultiples(List<Sale> ventas) {
         SaleResult resultado = new SaleResult();
         List<String> errores = new ArrayList<>();
         
@@ -137,9 +87,9 @@ public class SaleService {
             // Validar todas las ventas ANTES de procesarlas
             for (Sale venta : ventas) {
                 try {
-                    Product producto = productDAO.findById(venta.getProductoId());
-                    productService.validateSellableProduct(producto, venta.getCantidad());
-                    venta.updateTotal();
+                    Product producto = productDAO.buscarProductoPorId(venta.getProductoId());
+                    productService.validarProductoVendible(producto, venta.getCantidad());
+                    venta.actualizarTotal();
                 } catch (IllegalStateException | SQLException e) {
                     errores.add("Producto ID " + venta.getProductoId() + ": " + e.getMessage());
                 }
@@ -154,13 +104,13 @@ public class SaleService {
             }
             
             // Todas las validaciones pasaron, procesar ventas en transacción
-            boolean exito = saleDAO.saveAll(ventas);
+            boolean exito = saleDAO.guardarVentas(ventas);
             
             if (exito) {
                 resultado.setSuccess(true);
                 resultado.setSuccessfulSales(ventas.size());
-                resultado.setTotalAmount(calculateTotalAmount(ventas));
-                resultado.setTotalUnits(calculateTotalUnits(ventas));
+                resultado.setTotalAmount(calcularMontoTotal(ventas));
+                resultado.setTotalUnits(calcularUnidadesTotales(ventas));
                 resultado.setMessage("Venta completada exitosamente");
             } else {
                 resultado.setSuccess(false);
@@ -187,7 +137,7 @@ public class SaleService {
      * @param ventas Lista de ventas (carrito)
      * @return Lista de errores (vacía si todo está OK)
      */
-    public List<String> validateCart(List<Sale> ventas) {
+    public List<String> validarCarrito(List<Sale> ventas) {
         List<String> errores = new ArrayList<>();
         
         if (ventas == null || ventas.isEmpty()) {
@@ -197,7 +147,7 @@ public class SaleService {
         
         try {
             for (Sale venta : ventas) {
-                Product producto = productDAO.findById(venta.getProductoId());
+                Product producto = productDAO.buscarProductoPorId(venta.getProductoId());
                 
                 if (producto == null) {
                     errores.add("Producto ID " + venta.getProductoId() + " no existe");
@@ -205,7 +155,7 @@ public class SaleService {
                 }
                 
                 // Validar vencimiento
-                if (producto.isExpired()) {
+                if (producto.estaVencido()) {
                     errores.add(producto.getNombre() + " está VENCIDO. Debe retirarlo del carrito.");
                 }
                 
@@ -215,7 +165,7 @@ public class SaleService {
                 }
                 
                 // Validar stock
-                if (!producto.hasEnoughStock(venta.getCantidad())) {
+                if (!producto.tieneStockSuficiente(venta.getCantidad())) {
                     errores.add(producto.getNombre() + " - Stock insuficiente. " +
                              "Disponible: " + producto.getStock() + ", Solicitado: " + venta.getCantidad());
                 }
@@ -227,15 +177,13 @@ public class SaleService {
         return errores;
     }
     
-    // ==================== MÉTODOS AUXILIARES ====================
-    
     /**
      * Calcula el monto total de una lista de ventas
      * 
      * @param ventas Lista de ventas
      * @return Suma total
      */
-    private double calculateTotalAmount(List<Sale> ventas) {
+    private double calcularMontoTotal(List<Sale> ventas) {
         return ventas.stream()
                     .mapToDouble(Sale::getTotal)
                     .sum();
@@ -247,13 +195,11 @@ public class SaleService {
      * @param ventas Lista de ventas
      * @return Suma de unidades
      */
-    private int calculateTotalUnits(List<Sale> ventas) {
+    private int calcularUnidadesTotales(List<Sale> ventas) {
         return ventas.stream()
                     .mapToInt(Sale::getCantidad)
                     .sum();
     }
-    
-    // ==================== CLASE INTERNA: RESULTADO DE VENTA ====================
     
     /**
      * Clase que encapsula el resultado de una operación de venta

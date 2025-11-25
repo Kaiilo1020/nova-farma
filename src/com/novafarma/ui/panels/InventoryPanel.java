@@ -72,18 +72,14 @@ public class InventoryPanel extends JPanel {
     private JButton btnLastPage;
     private JLabel lblPageInfo;
     
-    // ==================== CONSTRUCTOR ====================
-    
     public InventoryPanel(User currentUser, ProductService productService) {
         this.currentUser = currentUser;
         this.productService = productService;
         
-        initializeUI();
+        inicializarInterfaz();
     }
     
-    // ==================== INICIALIZACIÓN DE UI ====================
-    
-    private void initializeUI() {
+    private void inicializarInterfaz() {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         
@@ -112,27 +108,27 @@ public class InventoryPanel extends JPanel {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         
         btnAddProduct = new JButton("Agregar Producto");
-        applyButtonStyle(btnAddProduct);
+        aplicarEstiloBoton(btnAddProduct);
         btnAddProduct.addActionListener(e -> {
             if (onAddProduct != null) onAddProduct.run();
         });
         
         btnEditProduct = new JButton("Editar Producto");
-        applyButtonStyle(btnEditProduct);
+        aplicarEstiloBoton(btnEditProduct);
         btnEditProduct.addActionListener(e -> {
             if (onEditProduct != null) onEditProduct.run();
         });
         
         btnDeleteProduct = new JButton("Eliminar Producto");
-        applyButtonStyle(btnDeleteProduct);
+        aplicarEstiloBoton(btnDeleteProduct);
         btnDeleteProduct.addActionListener(e -> {
             if (onDeleteProduct != null) onDeleteProduct.run();
         });
         
         JButton btnRefresh = new JButton("Actualizar");
-        applyButtonStyle(btnRefresh);
+        aplicarEstiloBoton(btnRefresh);
         btnRefresh.addActionListener(e -> {
-            loadProductsData();
+            cargarProductos();
             if (onRefresh != null) onRefresh.run();
         });
         
@@ -170,34 +166,34 @@ public class InventoryPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
         
         // Panel de paginación (se mostrará solo si hay muchos registros)
-        createPaginationPanel();
+        crearPanelPaginacion();
     }
     
     /**
      * Crea el panel de controles de paginación
      */
-    private void createPaginationPanel() {
+    private void crearPanelPaginacion() {
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         paginationPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
         
         btnFirstPage = new JButton("<< Primera");
-        applyButtonStyle(btnFirstPage);
-        btnFirstPage.addActionListener(e -> goToFirstPage());
+        aplicarEstiloBoton(btnFirstPage);
+        btnFirstPage.addActionListener(e -> irAPrimeraPagina());
         
         btnPrevPage = new JButton("< Anterior");
-        applyButtonStyle(btnPrevPage);
-        btnPrevPage.addActionListener(e -> goToPreviousPage());
+        aplicarEstiloBoton(btnPrevPage);
+        btnPrevPage.addActionListener(e -> irAPaginaAnterior());
         
         lblPageInfo = new JLabel("Página 1 de 1");
         lblPageInfo.setFont(new Font("Arial", Font.PLAIN, 12));
         
         btnNextPage = new JButton("Siguiente >");
-        applyButtonStyle(btnNextPage);
-        btnNextPage.addActionListener(e -> goToNextPage());
+        aplicarEstiloBoton(btnNextPage);
+        btnNextPage.addActionListener(e -> irAPaginaSiguiente());
         
         btnLastPage = new JButton("Última >>");
-        applyButtonStyle(btnLastPage);
-        btnLastPage.addActionListener(e -> goToLastPage());
+        aplicarEstiloBoton(btnLastPage);
+        btnLastPage.addActionListener(e -> irAUltimaPagina());
         
         paginationPanel.add(btnFirstPage);
         paginationPanel.add(btnPrevPage);
@@ -210,29 +206,30 @@ public class InventoryPanel extends JPanel {
         add(paginationPanel, BorderLayout.SOUTH);
     }
     
-    // ==================== MÉTODOS PÚBLICOS ====================
-    
     /**
      * Carga productos activos desde ProductService
      * OPTIMIZACIÓN: Usa paginación automática si hay más de PAGINATION_THRESHOLD registros
      */
-    public void loadProductsData() {
+    public void cargarProductos() {
         try {
             modelProducts.setRowCount(0);
             
             // Contar total de registros
-            totalRecords = productService.countActiveProducts();
+            totalRecords = productService.contarProductosActivos();
             
             // Decidir si usar paginación
             if (totalRecords > PAGINATION_THRESHOLD) {
                 paginationEnabled = true;
-                loadProductsDataPaginated();
+        cargarProductosPaginados();
+            cargarProductosPaginados();
+            cargarProductosPaginados();
+        cargarProductosPaginados();
             } else {
                 paginationEnabled = false;
-                loadProductsDataAll();
+                cargarProductosSinPaginacion();
             }
             
-            updatePaginationControls();
+            actualizarControlesPaginacion();
             
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, 
@@ -245,9 +242,9 @@ public class InventoryPanel extends JPanel {
     /**
      * Carga todos los productos (sin paginación)
      */
-    private void loadProductsDataAll() {
+    private void cargarProductosSinPaginacion() {
         try {
-            List<Product> products = productService.getAllActiveProducts(); // Obtener todos los productos activos
+            List<Product> products = productService.obtenerProductosActivos(); // Obtener todos los productos activos
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
             for (Product product : products) {
@@ -255,7 +252,7 @@ public class InventoryPanel extends JPanel {
                     product.getId(),
                     product.getNombre(),
                     product.getDescripcion(),
-                    String.format("$%.2f", product.getPrecio()),
+                    String.format("S/%.2f", product.getPrecio()),
                     product.getStock(),
                     product.getFechaVencimiento() != null ? 
                         dateFormat.format(product.getFechaVencimiento()) : "N/A"
@@ -273,10 +270,10 @@ public class InventoryPanel extends JPanel {
     /**
      * Carga productos con paginación
      */
-    private void loadProductsDataPaginated() {
+    private void cargarProductosPaginados() {
         try {
             int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
-            List<Product> products = productService.getActiveProductsPaginated(PAGE_SIZE, offset);
+            List<Product> products = productService.obtenerProductosActivosPaginados(PAGE_SIZE, offset);
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
             for (Product product : products) {
@@ -284,7 +281,7 @@ public class InventoryPanel extends JPanel {
                     product.getId(),
                     product.getNombre(),
                     product.getDescripcion(),
-                    String.format("$%.2f", product.getPrecio()),
+                    String.format("S/%.2f", product.getPrecio()),
                     product.getStock(),
                     product.getFechaVencimiento() != null ? 
                         dateFormat.format(product.getFechaVencimiento()) : "N/A"
@@ -302,7 +299,7 @@ public class InventoryPanel extends JPanel {
     /**
      * Actualiza los controles de paginación
      */
-    private void updatePaginationControls() {
+    private void actualizarControlesPaginacion() {
         if (!paginationEnabled) {
             // Ocultar controles si no hay paginación
             JPanel paginationPanel = (JPanel) getComponent(getComponentCount() - 1);
@@ -329,34 +326,34 @@ public class InventoryPanel extends JPanel {
     }
     
     // Métodos de navegación de paginación
-    private void goToFirstPage() {
+    private void irAPrimeraPagina() {
         currentPage = 1;
-        loadProductsDataPaginated();
-        updatePaginationControls();
+        cargarProductosPaginados();
+        actualizarControlesPaginacion();
     }
     
-    private void goToPreviousPage() {
+    private void irAPaginaAnterior() {
         if (currentPage > 1) {
             currentPage--;
-            loadProductsDataPaginated();
-            updatePaginationControls();
+            cargarProductosPaginados();
+            actualizarControlesPaginacion();
         }
     }
     
-    private void goToNextPage() {
+    private void irAPaginaSiguiente() {
         int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
         if (currentPage < totalPages) {
             currentPage++;
-            loadProductsDataPaginated();
-            updatePaginationControls();
+            cargarProductosPaginados();
+            actualizarControlesPaginacion();
         }
     }
     
-    private void goToLastPage() {
+    private void irAUltimaPagina() {
         int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
         currentPage = totalPages;
-        loadProductsDataPaginated();
-        updatePaginationControls();
+        cargarProductosPaginados();
+        actualizarControlesPaginacion();
     }
     
     /**
@@ -364,7 +361,7 @@ public class InventoryPanel extends JPanel {
      * 
      * @param product Producto actualizado desde la base de datos
      */
-    public void updateProductRow(Product product) {
+    public void actualizarFilaProducto(Product product) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
         
         // Buscar la fila por ID
@@ -376,7 +373,7 @@ public class InventoryPanel extends JPanel {
                 modelProducts.setValueAt(product.getId(), i, 0);
                 modelProducts.setValueAt(product.getNombre(), i, 1);
                 modelProducts.setValueAt(product.getDescripcion(), i, 2);
-                modelProducts.setValueAt(String.format("$%.2f", product.getPrecio()), i, 3);
+                modelProducts.setValueAt(String.format("S/%.2f", product.getPrecio()), i, 3);
                 modelProducts.setValueAt(product.getStock(), i, 4);
                 modelProducts.setValueAt(
                     product.getFechaVencimiento() != null ? 
@@ -390,7 +387,7 @@ public class InventoryPanel extends JPanel {
         // Si no se encontró la fila (producto reactivado), agregarlo
         // Esto puede pasar si el producto estaba inactivo y ahora se reactivó
         if (product.getStock() > 0) {
-            addProductRow(product);
+            agregarFilaProducto(product);
         }
     }
     
@@ -399,14 +396,14 @@ public class InventoryPanel extends JPanel {
      * 
      * @param product Producto nuevo a agregar
      */
-    public void addProductRow(Product product) {
+    public void agregarFilaProducto(Product product) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
         
         Object[] row = {
             product.getId(),
             product.getNombre(),
             product.getDescripcion(),
-            String.format("$%.2f", product.getPrecio()),
+            String.format("S/%.2f", product.getPrecio()),
             product.getStock(),
             product.getFechaVencimiento() != null ? 
                 dateFormat.format(product.getFechaVencimiento()) : "N/A"
@@ -419,7 +416,7 @@ public class InventoryPanel extends JPanel {
      * 
      * @param productId ID del producto a eliminar de la tabla
      */
-    public void removeProductRow(int productId) {
+    public void eliminarFilaProducto(int productId) {
         int rowCount = modelProducts.getRowCount();
         for (int i = 0; i < rowCount; i++) {
             int id = (Integer) modelProducts.getValueAt(i, 0);
@@ -433,7 +430,7 @@ public class InventoryPanel extends JPanel {
     /**
      * Aplica permisos basados en el rol del usuario
      */
-    public void applyRolePermissions() {
+    public void aplicarPermisosPorRol() {
         if (currentUser.isTrabajador()) {
             // TRABAJADOR: Solo puede ver, no puede modificar
             btnAddProduct.setEnabled(false);
@@ -450,7 +447,7 @@ public class InventoryPanel extends JPanel {
     /**
      * Obtiene el producto seleccionado en la tabla
      */
-    public int getSelectedProductRow() {
+    public int obtenerFilaProductoSeleccionada() {
         int selectedRow = tableProducts.getSelectedRow();
         if (selectedRow != -1) {
             return tableProducts.convertRowIndexToModel(selectedRow);
@@ -461,8 +458,8 @@ public class InventoryPanel extends JPanel {
     /**
      * Obtiene el ID del producto seleccionado
      */
-    public Integer getSelectedProductId() {
-        int row = getSelectedProductRow();
+    public Integer obtenerIdProductoSeleccionado() {
+        int row = obtenerFilaProductoSeleccionada();
         if (row != -1) {
             return (Integer) modelProducts.getValueAt(row, 0);
         }
@@ -472,36 +469,32 @@ public class InventoryPanel extends JPanel {
     /**
      * Obtiene el modelo de la tabla (para acceso desde Dashboard)
      */
-    public DefaultTableModel getTableModel() {
+    public DefaultTableModel obtenerModeloTabla() {
         return modelProducts;
     }
     
     /**
      * Obtiene la tabla (para acceso desde Dashboard)
      */
-    public JTable getTable() {
+    public JTable obtenerTabla() {
         return tableProducts;
     }
     
-    // ==================== SETTERS PARA CALLBACKS ====================
-    
-    public void setOnAddProduct(Runnable callback) {
+    public void setAccionAgregarProducto(Runnable callback) {
         this.onAddProduct = callback;
     }
     
-    public void setOnEditProduct(Runnable callback) {
+    public void setAccionEditarProducto(Runnable callback) {
         this.onEditProduct = callback;
     }
     
-    public void setOnDeleteProduct(Runnable callback) {
+    public void setAccionEliminarProducto(Runnable callback) {
         this.onDeleteProduct = callback;
     }
     
-    public void setOnRefresh(Runnable callback) {
+    public void setAccionRefrescar(Runnable callback) {
         this.onRefresh = callback;
     }
-    
-    // ==================== MÉTODOS PRIVADOS ====================
     
     /**
      * Filtra el inventario según el texto del buscador
@@ -516,7 +509,7 @@ public class InventoryPanel extends JPanel {
         }
     }
     
-    private void applyButtonStyle(JButton button) {
+    private void aplicarEstiloBoton(JButton button) {
         button.setFont(new Font("Arial", Font.PLAIN, 12));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }

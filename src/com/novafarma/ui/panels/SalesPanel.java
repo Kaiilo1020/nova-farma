@@ -76,24 +76,18 @@ public class SalesPanel extends JPanel {
     // Callback para notificar finalización de venta (para recargar inventario)
     private Runnable onVentaFinalizada;
     
-    // ==================== CONSTRUCTOR ====================
-    
     public SalesPanel(User currentUser, ProductService productService, SaleService saleService) {
         this.currentUser = currentUser;
         this.productService = productService;
         this.saleService = saleService;
         this.totalVenta = 0.0;
         
-        initializeUI();
+        inicializarInterfaz();
         cargarCatalogo();
     }
     
-    // ==================== INICIALIZACIÓN DE UI ====================
-    
-    private void initializeUI() {
+    private void inicializarInterfaz() {
         setLayout(new BorderLayout());
-        
-        // ==================== PANEL SUPERIOR: DATOS DE FACTURACIÓN ====================
         
         JPanel facturacionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         facturacionPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -133,13 +127,9 @@ public class SalesPanel extends JPanel {
         
         add(facturacionPanel, BorderLayout.NORTH);
         
-        // ==================== SPLIT PANE: CATÁLOGO | CARRITO ====================
-        
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setDividerLocation(550);
         splitPane.setDividerSize(5);
-        
-        // ==================== PANEL IZQUIERDO: CATÁLOGO ====================
         
         JPanel catalogoPanel = new JPanel(new BorderLayout(10, 10));
         catalogoPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -198,14 +188,12 @@ public class SalesPanel extends JPanel {
         bottomCatalogoPanel.add(btnCatalogoPanel, BorderLayout.NORTH);
         
         // Panel de paginación
-        createPaginationPanel();
+        crearPanelPaginacion();
         bottomCatalogoPanel.add(paginationPanel, BorderLayout.SOUTH);
         
         catalogoPanel.add(bottomCatalogoPanel, BorderLayout.SOUTH);
         
         splitPane.setLeftComponent(catalogoPanel);
-        
-        // ==================== PANEL DERECHO: CARRITO ====================
         
         JPanel carritoPanel = new JPanel(new BorderLayout(10, 10));
         carritoPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -245,7 +233,7 @@ public class SalesPanel extends JPanel {
         JLabel lblTotalTexto = new JLabel("TOTAL:");
         lblTotalTexto.setFont(new Font("Arial", Font.BOLD, 16));
         
-        lblTotal = new JLabel("$0.00");
+        lblTotal = new JLabel("S/0.00");
         lblTotal.setFont(new Font("Arial", Font.BOLD, 20));
         
         totalPanel.add(lblTotalTexto);
@@ -295,33 +283,31 @@ public class SalesPanel extends JPanel {
         add(splitPane, BorderLayout.CENTER);
     }
     
-    // ==================== MÉTODOS DE ACCIÓN ====================
-    
     /**
      * Crea el panel de controles de paginación
      */
-    private void createPaginationPanel() {
+    private void crearPanelPaginacion() {
         paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         paginationPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
         
         btnFirstPage = new JButton("<< Primera");
-        applyButtonStyle(btnFirstPage);
-        btnFirstPage.addActionListener(e -> goToFirstPage());
+        aplicarEstiloBoton(btnFirstPage);
+        btnFirstPage.addActionListener(e -> irAPrimeraPagina());
         
         btnPrevPage = new JButton("< Anterior");
-        applyButtonStyle(btnPrevPage);
-        btnPrevPage.addActionListener(e -> goToPreviousPage());
+        aplicarEstiloBoton(btnPrevPage);
+        btnPrevPage.addActionListener(e -> irAPaginaAnterior());
         
         lblPageInfo = new JLabel("Página 1 de 1");
         lblPageInfo.setFont(new Font("Arial", Font.PLAIN, 12));
         
         btnNextPage = new JButton("Siguiente >");
-        applyButtonStyle(btnNextPage);
-        btnNextPage.addActionListener(e -> goToNextPage());
+        aplicarEstiloBoton(btnNextPage);
+        btnNextPage.addActionListener(e -> irAPaginaSiguiente());
         
         btnLastPage = new JButton("Última >>");
-        applyButtonStyle(btnLastPage);
-        btnLastPage.addActionListener(e -> goToLastPage());
+        aplicarEstiloBoton(btnLastPage);
+        btnLastPage.addActionListener(e -> irAUltimaPagina());
         
         paginationPanel.add(btnFirstPage);
         paginationPanel.add(btnPrevPage);
@@ -332,7 +318,7 @@ public class SalesPanel extends JPanel {
         paginationPanel.setVisible(false);
     }
     
-    private void applyButtonStyle(JButton button) {
+    private void aplicarEstiloBoton(JButton button) {
         button.setFont(new Font("Arial", Font.PLAIN, 11));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
@@ -344,7 +330,7 @@ public class SalesPanel extends JPanel {
     public void cargarCatalogo() {
         try {
             // Contar total de productos vendibles (con stock > 0)
-            int totalVendibles = productService.countActiveProductsWithStock();
+            int totalVendibles = productService.contarProductosActivosConStock();
             
             // Activar paginación si hay muchos registros
             if (totalVendibles > PAGINATION_THRESHOLD) {
@@ -356,7 +342,7 @@ public class SalesPanel extends JPanel {
                 cargarCatalogoCompleto();
             }
             
-            updatePaginationControls();
+            actualizarControlesPaginacion();
             
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this,
@@ -373,14 +359,14 @@ public class SalesPanel extends JPanel {
         try {
             modelCatalogo.setRowCount(0);
             
-            List<Product> products = productService.getAllActiveProducts();
+            List<Product> products = productService.obtenerProductosActivos();
             
             for (Product product : products) {
                 if (product.getStock() > 0) {
                     Object[] row = {
                         product.getId(),
                         product.getNombre(),
-                        String.format("$%.2f", product.getPrecio()),
+                        String.format("S/%.2f", product.getPrecio()),
                         product.getStock()
                     };
                     modelCatalogo.addRow(row);
@@ -400,14 +386,14 @@ public class SalesPanel extends JPanel {
             modelCatalogo.setRowCount(0);
             
             int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
-            List<Product> products = productService.getActiveProductsPaginated(PAGE_SIZE, offset);
+            List<Product> products = productService.obtenerProductosActivosPaginados(PAGE_SIZE, offset);
             
             for (Product product : products) {
                 if (product.getStock() > 0) {
                     Object[] row = {
                         product.getId(),
                         product.getNombre(),
-                        String.format("$%.2f", product.getPrecio()),
+                        String.format("S/%.2f", product.getPrecio()),
                         product.getStock()
                     };
                     modelCatalogo.addRow(row);
@@ -422,7 +408,7 @@ public class SalesPanel extends JPanel {
     /**
      * Actualiza los controles de paginación
      */
-    private void updatePaginationControls() {
+    private void actualizarControlesPaginacion() {
         if (!paginationEnabled) {
             paginationPanel.setVisible(false);
             return;
@@ -442,34 +428,34 @@ public class SalesPanel extends JPanel {
         btnLastPage.setEnabled(currentPage < totalPages);
     }
     
-    private void goToFirstPage() {
+    private void irAPrimeraPagina() {
         currentPage = 1;
         cargarCatalogoPaginated();
-        updatePaginationControls();
+        actualizarControlesPaginacion();
     }
     
-    private void goToPreviousPage() {
+    private void irAPaginaAnterior() {
         if (currentPage > 1) {
             currentPage--;
             cargarCatalogoPaginated();
-            updatePaginationControls();
+            actualizarControlesPaginacion();
         }
     }
     
-    private void goToNextPage() {
+    private void irAPaginaSiguiente() {
         int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
         if (currentPage < totalPages) {
             currentPage++;
             cargarCatalogoPaginated();
-            updatePaginationControls();
+            actualizarControlesPaginacion();
         }
     }
     
-    private void goToLastPage() {
+    private void irAUltimaPagina() {
         int totalPages = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
         currentPage = totalPages;
         cargarCatalogoPaginated();
-        updatePaginationControls();
+        actualizarControlesPaginacion();
     }
     
     /**
@@ -493,9 +479,9 @@ public class SalesPanel extends JPanel {
             
             if (paginationEnabled) {
                 int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
-                products = productService.getActiveProductsPaginated(PAGE_SIZE, offset);
+                products = productService.obtenerProductosActivosPaginados(PAGE_SIZE, offset);
             } else {
-                products = productService.getAllActiveProducts();
+                products = productService.obtenerProductosActivos();
             }
             
             // Filtrar por nombre (case-insensitive)
@@ -505,7 +491,7 @@ public class SalesPanel extends JPanel {
                     Object[] row = {
                         product.getId(),
                         product.getNombre(),
-                        String.format("$%.2f", product.getPrecio()),
+                        String.format("S/%.2f", product.getPrecio()),
                         product.getStock()
                     };
                     modelCatalogo.addRow(row);
@@ -538,7 +524,7 @@ public class SalesPanel extends JPanel {
         int stockDisponible = (int) modelCatalogo.getValueAt(selectedRow, 3);
         
         // Extraer el precio
-        double precio = Double.parseDouble(precioStr.replace("$", ""));
+        double precio = Double.parseDouble(precioStr.replace("S/", ""));
         
         // Pedir cantidad
         String cantidadStr = JOptionPane.showInputDialog(this,
@@ -598,7 +584,7 @@ public class SalesPanel extends JPanel {
                     
                     double nuevoSubtotal = nuevaCantidad * precio;
                     modelCarrito.setValueAt(nuevaCantidad, i, 2);
-                    modelCarrito.setValueAt(String.format("$%.2f", nuevoSubtotal), i, 4);
+                    modelCarrito.setValueAt(String.format("S/%.2f", nuevoSubtotal), i, 4);
                     productoExiste = true;
                     break;
                 }
@@ -611,7 +597,7 @@ public class SalesPanel extends JPanel {
                     nombreProducto,
                     cantidad,
                     precioStr,
-                    String.format("$%.2f", subtotal)
+                    String.format("S/%.2f", subtotal)
                 };
                 modelCarrito.addRow(row);
             }
@@ -635,11 +621,11 @@ public class SalesPanel extends JPanel {
         
         for (int i = 0; i < modelCarrito.getRowCount(); i++) {
             String subtotalStr = (String) modelCarrito.getValueAt(i, 4);
-            double subtotal = Double.parseDouble(subtotalStr.replace("$", ""));
+            double subtotal = Double.parseDouble(subtotalStr.replace("S/", ""));
             totalVenta += subtotal;
         }
         
-        lblTotal.setText(String.format("$%.2f", totalVenta));
+        lblTotal.setText(String.format("S/%.2f", totalVenta));
     }
     
     /**
@@ -712,7 +698,7 @@ public class SalesPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             modelCarrito.setRowCount(0);
             totalVenta = 0.0;
-            lblTotal.setText("$0.00");
+            lblTotal.setText("S/0.00");
             limpiarCamposFacturacion(); // Limpiar campos de facturación
         }
     }
@@ -740,14 +726,14 @@ public class SalesPanel extends JPanel {
             int productoId = (int) modelCarrito.getValueAt(i, 0);
             int cantidad = (int) modelCarrito.getValueAt(i, 2);
             String precioStr = (String) modelCarrito.getValueAt(i, 3);
-            double precioUnitario = Double.parseDouble(precioStr.replace("$", ""));
+            double precioUnitario = Double.parseDouble(precioStr.replace("S/", ""));
             
             Sale sale = new Sale(productoId, usuarioId, cantidad, precioUnitario);
             sales.add(sale);
         }
         
         // Validar carrito usando SaleService (ARQUITECTURA: Capa de Servicios)
-        List<String> errores = saleService.validateCart(sales);
+        List<String> errores = saleService.validarCarrito(sales);
         
         // Si hay errores, BLOQUEAR venta
         if (!errores.isEmpty()) {
@@ -815,7 +801,7 @@ public class SalesPanel extends JPanel {
         }
         
         // Procesar venta con SaleService (ARQUITECTURA: Capa de Servicios)
-        SaleService.SaleResult result = saleService.processMultipleSales(sales);
+        SaleService.SaleResult result = saleService.procesarVentasMultiples(sales);
         
         // Mostrar resultado con información de facturación
         if (result.isSuccess()) {
@@ -828,7 +814,7 @@ public class SalesPanel extends JPanel {
                 mensajeExito.append("DNI/RUC: ").append(dniRuc).append("\n");
             }
             mensajeExito.append("\n");
-            mensajeExito.append("Total: ").append(String.format("$%.2f", result.getTotalAmount())).append("\n");
+            mensajeExito.append("Total: ").append(String.format("S/%.2f", result.getTotalAmount())).append("\n");
             mensajeExito.append("Líneas de productos: ").append(result.getSuccessfulSales()).append("\n");
             mensajeExito.append("Unidades vendidas: ").append(result.getTotalUnits()).append("\n\n");
             mensajeExito.append("El stock se actualizó automáticamente.");
@@ -841,7 +827,7 @@ public class SalesPanel extends JPanel {
             // Limpiar carrito, campos de facturación y recargar catálogo
             modelCarrito.setRowCount(0);
             totalVenta = 0.0;
-            lblTotal.setText("$0.00");
+            lblTotal.setText("S/0.00");
             limpiarCamposFacturacion(); // Limpiar campos de facturación
             cargarCatalogo();
             
@@ -865,8 +851,6 @@ public class SalesPanel extends JPanel {
                 JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    // ==================== MÉTODOS PÚBLICOS ====================
     
     /**
      * Limpia los campos de facturación

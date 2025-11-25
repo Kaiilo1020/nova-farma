@@ -17,8 +17,6 @@ import java.time.temporal.ChronoUnit;
  */
 public class Product {
     
-    // ==================== ATRIBUTOS ====================
-    
     private int id;
     private String nombre;
     private String descripcion;
@@ -70,7 +68,7 @@ public class Product {
      * 
      * @return true si la fecha de vencimiento es anterior a hoy
      */
-    public boolean isExpired() {
+    public boolean estaVencido() {
         if (fechaVencimiento == null) {
             return false;
         }
@@ -84,7 +82,7 @@ public class Product {
      * 
      * @return true si vence en los próximos 30 días (pero no está vencido)
      */
-    public boolean isExpiringSoon() {
+    public boolean vencePronto() {
         if (fechaVencimiento == null) {
             return false;
         }
@@ -100,7 +98,7 @@ public class Product {
      * 
      * @return Número de días (positivo si no vencido, negativo si vencido)
      */
-    public long getDaysUntilExpiration() {
+    public long obtenerDiasHastaVencimiento() {
         if (fechaVencimiento == null) {
             return Long.MAX_VALUE;
         }
@@ -114,7 +112,7 @@ public class Product {
      * 
      * @return true si el stock es mayor a 0
      */
-    public boolean hasStock() {
+    public boolean tieneStock() {
         return this.stock > 0;
     }
     
@@ -124,8 +122,8 @@ public class Product {
      * @param quantityRequested Cantidad solicitada
      * @return true si hay suficiente stock
      */
-    public boolean hasEnoughStock(int quantityRequested) {
-        return this.stock >= quantityRequested;
+    public boolean tieneStockSuficiente(int cantidadSolicitada) {
+        return this.stock >= cantidadSolicitada;
     }
     
     /**
@@ -137,8 +135,8 @@ public class Product {
      * 
      * @return true si el producto puede venderse
      */
-    public boolean isSellable() {
-        return this.activo && !isExpired() && hasStock();
+    public boolean esVendible() {
+        return this.activo && !estaVencido() && tieneStock();
     }
     
     // Getters y Setters

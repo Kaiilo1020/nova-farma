@@ -39,7 +39,7 @@ public class ProductDialog extends JDialog {
      */
     public ProductDialog(Frame parent) {
         super(parent, "Agregar Producto", true);
-        initializeUI(null);
+        inicializarInterfaz(null);
     }
     
     /**
@@ -47,10 +47,10 @@ public class ProductDialog extends JDialog {
      */
     public ProductDialog(Frame parent, Product product) {
         super(parent, "Editar Producto ID: " + product.getId(), true);
-        initializeUI(product);
+        inicializarInterfaz(product);
     }
     
-    private void initializeUI(Product product) {
+    private void inicializarInterfaz(Product product) {
         setSize(500, 480);
         setLocationRelativeTo(getParent());
         setResizable(false);
@@ -293,7 +293,7 @@ public class ProductDialog extends JDialog {
     /**
      * Método estático para crear un nuevo producto
      */
-    public static Product showCreateDialog(Frame parent) {
+    public static Product mostrarDialogoCreacion(Frame parent) {
         ProductDialog dialog = new ProductDialog(parent);
         return dialog.showDialog();
     }
@@ -301,7 +301,7 @@ public class ProductDialog extends JDialog {
     /**
      * Método estático para editar un producto existente
      */
-    public static Product showEditDialog(Frame parent, Product product) {
+    public static Product mostrarDialogoEdicion(Frame parent, Product product) {
         ProductDialog dialog = new ProductDialog(parent, product);
         Product edited = dialog.showDialog();
         if (edited != null && product != null) {

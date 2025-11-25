@@ -30,8 +30,6 @@ import java.util.Date;
  */
 public class ProductExpirationRenderer extends DefaultTableCellRenderer {
     
-    // ==================== COLORES DE ALERTA ====================
-    
     private static final Color COLOR_VENCIDO = new Color(255, 102, 102);      // Rojo suave
     private static final Color COLOR_POR_VENCER = new Color(255, 204, 102);  // Naranja suave
     private static final Color COLOR_NORMAL = new Color(204, 255, 204);      // Verde suave

@@ -22,7 +22,7 @@ import java.util.List;
  * - Botón para retirar productos vencidos (solo ADMINISTRADOR)
  * 
  * ARQUITECTURA:
- * - Usa ProductService.getExpiringSoonProducts()
+ * - Usa ProductService.obtenerProductosPorVencer()
  * - UI separada de lógica de negocio
  * - Callback para acción de retirar vencidos
  * 
@@ -45,18 +45,14 @@ public class AlertsPanel extends JPanel {
     // Callback para acción de retirar vencidos
     private Runnable onEliminarVencidos;
     
-    // ==================== CONSTRUCTOR ====================
-    
     public AlertsPanel(User currentUser, ProductService productService) {
         this.currentUser = currentUser;
         this.productService = productService;
         
-        initializeUI();
+        inicializarInterfaz();
     }
     
-    // ==================== INICIALIZACIÓN DE UI ====================
-    
-    private void initializeUI() {
+    private void inicializarInterfaz() {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         
@@ -130,8 +126,6 @@ public class AlertsPanel extends JPanel {
         add(infoPanel, BorderLayout.SOUTH);
     }
     
-    // ==================== MÉTODOS PÚBLICOS ====================
-    
     /**
      * Carga productos con alertas de vencimiento
      */
@@ -139,11 +133,11 @@ public class AlertsPanel extends JPanel {
         try {
             modelAlertas.setRowCount(0);
             
-            List<Product> products = productService.getExpiringSoonProducts();
+            List<Product> products = productService.obtenerProductosPorVencer();
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             
             for (Product product : products) {
-                long diasRestantes = product.getDaysUntilExpiration();
+                long diasRestantes = product.obtenerDiasHastaVencimiento();
                 
                 String estado;
                 if (diasRestantes < 0) {
@@ -188,7 +182,7 @@ public class AlertsPanel extends JPanel {
     /**
      * Aplica permisos basados en el rol del usuario
      */
-    public void applyRolePermissions() {
+    public void aplicarPermisosPorRol() {
         if (currentUser.isTrabajador()) {
             // TRABAJADOR: No puede retirar productos vencidos
             btnEliminarVencidos.setEnabled(false);
@@ -201,7 +195,7 @@ public class AlertsPanel extends JPanel {
     /**
      * Obtiene la fila seleccionada en la tabla de alertas
      */
-    public int getSelectedAlertRow() {
+    public int obtenerFilaAlertaSeleccionada() {
         int selectedRow = tableAlertas.getSelectedRow();
         if (selectedRow != -1) {
             return tableAlertas.convertRowIndexToModel(selectedRow);
@@ -212,8 +206,8 @@ public class AlertsPanel extends JPanel {
     /**
      * Obtiene el ID del producto seleccionado en la tabla de alertas
      */
-    public Integer getSelectedProductId() {
-        int row = getSelectedAlertRow();
+    public Integer obtenerIdProductoSeleccionado() {
+        int row = obtenerFilaAlertaSeleccionada();
         if (row != -1) {
             return (Integer) modelAlertas.getValueAt(row, 0);
         }
@@ -223,13 +217,11 @@ public class AlertsPanel extends JPanel {
     /**
      * Obtiene el modelo de la tabla
      */
-    public DefaultTableModel getTableModel() {
+    public DefaultTableModel obtenerModeloTabla() {
         return modelAlertas;
     }
     
-    // ==================== SETTER PARA CALLBACK ====================
-    
-    public void setOnEliminarVencidos(Runnable callback) {
+    public void setAccionEliminarVencidos(Runnable callback) {
         this.onEliminarVencidos = callback;
     }
     

@@ -7,30 +7,11 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data Access Object (DAO) para la entidad Sale
- * 
- * Responsable de todas las operaciones CRUD en la tabla 'ventas'
- * 
- * IMPORTANTE: El trigger 'trigger_actualizar_stock' se ejecuta automáticamente
- * después de cada INSERT en la tabla ventas, descargando el stock del producto.
- * 
- * @author Nova Farma Development Team
- * @version 1.0
- */
+/** DAO para operaciones CRUD en la tabla ventas (el trigger actualiza stock automáticamente) */
 public class SaleDAO {
     
-    /**
-     * Inserta una nueva venta en la base de datos
-     * 
-     * CRÍTICO: Esta operación NO actualiza el stock manualmente.
-     * El trigger de PostgreSQL 'trigger_actualizar_stock' lo hace automáticamente.
-     * 
-     * @param sale Venta a registrar
-     * @return true si la inserción fue exitosa
-     * @throws SQLException Si hay error en la inserción o stock insuficiente
-     */
-    public boolean save(Sale venta) throws SQLException {
+    /** Inserta una venta (el trigger actualiza stock automáticamente) */
+    public boolean guardarVenta(Sale venta) throws SQLException {
         String consultaSQL = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
                      "VALUES (?, ?, ?, ?, ?)";
         
@@ -47,21 +28,14 @@ public class SaleDAO {
         }
     }
     
-    /**
-     * Inserta múltiples ventas en una transacción
-     * Si alguna falla, todas se revierten (atomicidad)
-     * 
-     * @param sales Lista de ventas a registrar
-     * @return true si todas las ventas fueron exitosas
-     * @throws SQLException Si hay error en alguna inserción
-     */
-    public boolean saveAll(List<Sale> ventas) throws SQLException {
+    /** Inserta múltiples ventas en transacción (si falla una, todas se revierten) */
+    public boolean guardarVentas(List<Sale> ventas) throws SQLException {
         Connection conexion = null;
         PreparedStatement consultaPreparada = null;
         
         try {
             conexion = DatabaseConnection.getConnection();
-            conexion.setAutoCommit(false); // Iniciar transacción
+            conexion.setAutoCommit(false);
             
             String consultaSQL = "INSERT INTO ventas (producto_id, usuario_id, cantidad, precio_unitario, total) " +
                          "VALUES (?, ?, ?, ?, ?)";
@@ -77,23 +51,23 @@ public class SaleDAO {
             }
             
             consultaPreparada.executeBatch();
-            conexion.commit(); // Confirmar transacción
+            conexion.commit();
             return true;
             
         } catch (SQLException e) {
             if (conexion != null) {
                 try {
-                    conexion.rollback(); // Revertir en caso de error
+                    conexion.rollback();
                 } catch (SQLException excepcionRollback) {
                     excepcionRollback.printStackTrace();
                 }
             }
-            throw e; // Relanzar excepción
+            throw e;
             
         } finally {
             if (consultaPreparada != null) consultaPreparada.close();
             if (conexion != null) {
-                conexion.setAutoCommit(true); // Restaurar auto-commit
+                conexion.setAutoCommit(true);
                 conexion.close();
             }
         }
@@ -105,7 +79,7 @@ public class SaleDAO {
      * @return Lista de todas las ventas
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findAll() throws SQLException {
+    public List<Sale> obtenerTodasLasVentas() throws SQLException {
         List<Sale> ventas = new ArrayList<>();
         String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas ORDER BY fecha_venta DESC";
@@ -132,7 +106,7 @@ public class SaleDAO {
      * @return Lista de ventas ordenadas por fecha (más reciente primero)
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findAll(int limit, int offset) throws SQLException {
+    public List<Sale> obtenerVentasPaginadas(int limit, int offset) throws SQLException {
         List<Sale> ventas = new ArrayList<>();
         String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas ORDER BY fecha_venta DESC LIMIT ? OFFSET ?";
@@ -161,7 +135,7 @@ public class SaleDAO {
      * @return Lista de ventas del usuario
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findByUserId(int usuarioId) throws SQLException {
+    public List<Sale> obtenerVentasPorUsuario(int usuarioId) throws SQLException {
         List<Sale> ventas = new ArrayList<>();
         String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE usuario_id = ? ORDER BY fecha_venta DESC";
@@ -189,7 +163,7 @@ public class SaleDAO {
      * @return Lista de ventas del producto
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findByProductId(int productoId) throws SQLException {
+    public List<Sale> obtenerVentasPorProducto(int productoId) throws SQLException {
         List<Sale> ventas = new ArrayList<>();
         String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE producto_id = ? ORDER BY fecha_venta DESC";
@@ -218,7 +192,7 @@ public class SaleDAO {
      * @return Lista de ventas en el rango
      * @throws SQLException Si hay error en la consulta
      */
-    public List<Sale> findByDateRange(Timestamp fechaInicio, Timestamp fechaFin) throws SQLException {
+    public List<Sale> obtenerVentasPorRangoFechas(Timestamp fechaInicio, Timestamp fechaFin) throws SQLException {
         List<Sale> ventas = new ArrayList<>();
         String consultaSQL = "SELECT id, producto_id, usuario_id, cantidad, precio_unitario, total, fecha_venta " +
                      "FROM ventas WHERE fecha_venta BETWEEN ? AND ? ORDER BY fecha_venta DESC";
@@ -246,7 +220,7 @@ public class SaleDAO {
      * @return Número de ventas registradas
      * @throws SQLException Si hay error en la consulta
      */
-    public int countAll() throws SQLException {
+    public int contarVentas() throws SQLException {
         String consultaSQL = "SELECT COUNT(*) as total FROM ventas";
         
         try (Connection conexion = DatabaseConnection.getConnection();
@@ -267,7 +241,7 @@ public class SaleDAO {
      * @return Suma total de ventas
      * @throws SQLException Si hay error en la consulta
      */
-    public double calculateTotalRevenue() throws SQLException {
+    public double calcularIngresosTotales() throws SQLException {
         String consultaSQL = "SELECT SUM(total) as ingresos FROM ventas";
         
         try (Connection conexion = DatabaseConnection.getConnection();
@@ -281,8 +255,6 @@ public class SaleDAO {
         
         return 0.0;
     }
-    
-    // ==================== MÉTODO AUXILIAR ====================
     
     /**
      * Mapea un ResultSet a un objeto Sale

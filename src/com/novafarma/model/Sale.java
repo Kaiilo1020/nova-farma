@@ -16,8 +16,6 @@ import java.sql.Timestamp;
  */
 public class Sale {
     
-    // ==================== ATRIBUTOS ====================
-    
     private int id;
     private int productoId;
     private int usuarioId;
@@ -25,8 +23,6 @@ public class Sale {
     private double precioUnitario;
     private double total;
     private Timestamp fechaVenta;
-    
-    // ==================== CONSTRUCTORES ====================
     
     /**
      * Constructor vacío
@@ -60,22 +56,20 @@ public class Sale {
         this.total = cantidad * precioUnitario; // Cálculo automático
     }
     
-    // ==================== LÓGICA DE NEGOCIO ====================
-    
     /**
      * Calcula el total de la venta basado en cantidad y precio unitario
      * 
      * @return Total calculado
      */
-    public double calculateTotal() {
+    public double calcularTotal() {
         return this.cantidad * this.precioUnitario;
     }
     
     /**
      * Actualiza el total después de cambiar cantidad o precio
      */
-    public void updateTotal() {
-        this.total = calculateTotal();
+    public void actualizarTotal() {
+        this.total = calcularTotal();
     }
     
     /**
@@ -83,14 +77,12 @@ public class Sale {
      * 
      * @return true si la venta es válida
      */
-    public boolean isValid() {
+    public boolean esValida() {
         return cantidad > 0 && 
                precioUnitario > 0 && 
                productoId > 0 && 
                usuarioId > 0;
     }
-    
-    // ==================== GETTERS Y SETTERS ====================
     
     public int getId() {
         return id;
@@ -122,7 +114,7 @@ public class Sale {
     
     public void setCantidad(int cantidad) {
         this.cantidad = cantidad;
-        updateTotal(); // Recalcular total automáticamente
+        actualizarTotal(); // Recalcular total automáticamente
     }
     
     public double getPrecioUnitario() {
@@ -131,7 +123,7 @@ public class Sale {
     
     public void setPrecioUnitario(double precioUnitario) {
         this.precioUnitario = precioUnitario;
-        updateTotal(); // Recalcular total automáticamente
+        actualizarTotal(); // Recalcular total automáticamente
     }
     
     public double getTotal() {
@@ -149,8 +141,6 @@ public class Sale {
     public void setFechaVenta(Timestamp fechaVenta) {
         this.fechaVenta = fechaVenta;
     }
-    
-    // ==================== MÉTODOS DE OBJETO ====================
     
     @Override
     public String toString() {

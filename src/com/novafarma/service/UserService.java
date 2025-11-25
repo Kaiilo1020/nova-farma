@@ -8,162 +8,76 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Servicio de lógica de negocio para Usuarios
- * 
- * Responsabilidades:
- * - Validación antes de eliminar usuarios
- * - Verificación de ventas asociadas
- * - Gestión de usuarios del sistema
- * 
- * @author Nova Farma Development Team
- * @version 1.0
- */
+/** Servicio de lógica de negocio para Usuarios */
 public class UserService {
     
     private final UserDAO userDAO;
     private final SaleDAO saleDAO;
     
-    /**
-     * Constructor
-     */
     public UserService() {
         this.userDAO = new UserDAO();
         this.saleDAO = new SaleDAO();
     }
     
-    // ==================== CONSULTAS ====================
-    
-    /**
-     * Obtiene todos los usuarios del sistema
-     * 
-     * @return Lista de todos los usuarios
-     * @throws SQLException Si hay error en la consulta
-     */
-    public List<User> getAllUsers() throws SQLException {
-        return userDAO.findAll();
+    /** Obtiene todos los usuarios */
+    public List<User> obtenerTodosLosUsuarios() throws SQLException {
+        return userDAO.obtenerTodosLosUsuarios();
     }
     
-    /**
-     * Obtiene usuarios con paginación
-     * OPTIMIZACIÓN: Para manejar grandes volúmenes de datos
-     * 
-     * @param limit Número máximo de registros a retornar
-     * @param offset Número de registros a saltar (para paginación)
-     * @return Lista de usuarios
-     * @throws SQLException Si hay error en la consulta
-     */
-    public List<User> getUsersPaginated(int limit, int offset) throws SQLException {
-        return userDAO.findAll(limit, offset);
+    /** Obtiene usuarios con paginación */
+    public List<User> obtenerUsuariosPaginados(int limit, int offset) throws SQLException {
+        return userDAO.obtenerUsuariosPaginados(limit, offset);
     }
     
-    /**
-     * Cuenta el número total de usuarios
-     * 
-     * @return Número total de usuarios
-     * @throws SQLException Si hay error en la consulta
-     */
-    public int countAllUsers() throws SQLException {
-        return userDAO.countAll();
+    /** Cuenta usuarios */
+    public int contarUsuarios() throws SQLException {
+        return userDAO.contarUsuarios();
     }
     
-    /**
-     * Busca un usuario por su ID
-     * 
-     * @param id ID del usuario
-     * @return User si existe, null si no
-     * @throws SQLException Si hay error en la consulta
-     */
-    public User getUserById(int id) throws SQLException {
-        return userDAO.findById(id);
+    /** Busca usuario por ID */
+    public User obtenerUsuarioPorId(int id) throws SQLException {
+        return userDAO.buscarUsuarioPorId(id);
     }
     
-    /**
-     * Busca un usuario por su nombre de usuario
-     * 
-     * @param username Nombre de usuario
-     * @return User si existe, null si no
-     * @throws SQLException Si hay error en la consulta
-     */
-    public User getUserByUsername(String username) throws SQLException {
-        return userDAO.findByUsername(username);
+    /** Busca usuario por nombre */
+    public User obtenerUsuarioPorNombre(String username) throws SQLException {
+        return userDAO.buscarPorNombreUsuario(username);
     }
     
-    // ==================== OPERACIONES ====================
-    
-    /**
-     * Crea un nuevo usuario
-     * 
-     * @param user Usuario a crear (la contraseña debe venir hasheada)
-     * @return true si la creación fue exitosa
-     * @throws SQLException Si hay error (ej: username duplicado)
-     */
-    public boolean createUser(User user) throws SQLException {
-        return userDAO.save(user);
+    /** Crea un nuevo usuario (password debe venir hasheado) */
+    public boolean crearUsuario(User user) throws SQLException {
+        return userDAO.guardarUsuario(user);
     }
     
-    /**
-     * Verifica si un usuario tiene ventas registradas
-     * 
-     * @param userId ID del usuario
-     * @return true si el usuario tiene ventas, false si no
-     * @throws SQLException Si hay error en la consulta
-     */
-    public boolean hasSales(int userId) throws SQLException {
-        List<com.novafarma.model.Sale> sales = saleDAO.findByUserId(userId);
+    /** Verifica si un usuario tiene ventas */
+    public boolean tieneVentas(int userId) throws SQLException {
+        List<com.novafarma.model.Sale> sales = saleDAO.obtenerVentasPorUsuario(userId);
         return sales != null && !sales.isEmpty();
     }
     
-    /**
-     * Obtiene el número de ventas de un usuario
-     * 
-     * @param userId ID del usuario
-     * @return Número de ventas del usuario
-     * @throws SQLException Si hay error en la consulta
-     */
-    public int getSalesCount(int userId) throws SQLException {
-        List<com.novafarma.model.Sale> sales = saleDAO.findByUserId(userId);
+    /** Obtiene número de ventas de un usuario */
+    public int obtenerTotalVentasUsuario(int userId) throws SQLException {
+        List<com.novafarma.model.Sale> sales = saleDAO.obtenerVentasPorUsuario(userId);
         return sales != null ? sales.size() : 0;
     }
     
-    /**
-     * Obtiene un mapa con el conteo de ventas para todos los usuarios
-     * OPTIMIZACIÓN: Una sola query en lugar de N queries (evita problema N+1)
-     * 
-     * @return Map donde la clave es el ID del usuario y el valor es el conteo de ventas
-     * @throws SQLException Si hay error en la consulta
-     */
-    public Map<Integer, Integer> getAllUsersSalesCount() throws SQLException {
-        return userDAO.findAllWithSalesCount();
+    /** Obtiene usuarios con conteo de ventas (evita N+1) */
+    public Map<Integer, Integer> obtenerUsuariosConVentas() throws SQLException {
+        return userDAO.obtenerUsuariosConConteoVentas();
     }
     
-    /**
-     * Elimina un usuario del sistema
-     * 
-     * VALIDACIONES:
-     * - Verifica que el usuario no tenga ventas asociadas
-     * - Previene eliminar el último administrador
-     * 
-     * @param userId ID del usuario a eliminar
-     * @return Resultado de la eliminación con mensaje descriptivo
-     * @throws SQLException Si hay error en la operación
-     */
-    public DeleteUserResult deleteUser(int userId) throws SQLException {
+    /** Elimina usuario (valida que no tenga ventas) */
+    public DeleteUserResult eliminarUsuario(int userId) throws SQLException {
         DeleteUserResult result = new DeleteUserResult();
-        
-        // Verificar que el usuario existe
-        User user = userDAO.findById(userId);
+        User user = userDAO.buscarUsuarioPorId(userId);
         if (user == null) {
             result.setSuccess(false);
             result.setMessage("El usuario no existe");
             return result;
         }
         
-        // NO permitir eliminar el usuario actual (esto se valida en la UI)
-        
-        // Verificar si tiene ventas
-        if (hasSales(userId)) {
-            int salesCount = getSalesCount(userId);
+        if (tieneVentas(userId)) {
+            int salesCount = obtenerTotalVentasUsuario(userId);
             result.setSuccess(false);
             result.setMessage("No se puede eliminar el usuario '" + user.getUsername() + "' porque tiene " + 
                             salesCount + " venta(s) registrada(s).\n\n" +
@@ -173,8 +87,7 @@ public class UserService {
             return result;
         }
         
-        // Intentar eliminar
-        boolean deleted = userDAO.delete(userId);
+        boolean deleted = userDAO.eliminarUsuario(userId);
         
         if (deleted) {
             result.setSuccess(true);
@@ -186,8 +99,6 @@ public class UserService {
         
         return result;
     }
-    
-    // ==================== CLASE INTERNA: RESULTADO DE ELIMINACIÓN ====================
     
     /**
      * Clase que encapsula el resultado de una operación de eliminación de usuario

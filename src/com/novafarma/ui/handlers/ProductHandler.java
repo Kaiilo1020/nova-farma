@@ -13,10 +13,7 @@ import javax.swing.*;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Maneja las operaciones de productos (agregar, editar, eliminar)
- * Separa esta lógica del Dashboard para que sea más simple
- */
+/** Maneja operaciones de productos (agregar, editar, eliminar) */
 public class ProductHandler {
     
     private JFrame parent;
@@ -41,26 +38,23 @@ public class ProductHandler {
         this.salesPanel = salesPanel;
     }
     
-    public void agregar() { //Funcion para agregar un producto
-        if (currentUser.isTrabajador()) { // Si el usuario no es administrador, se muestra un mensaje de error
+    public void agregar() {
+        if (currentUser.isTrabajador()) {
             JOptionPane.showMessageDialog(parent, Mensajes.SOLO_ADMIN, Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        // Usar diálogo dedicado en lugar de JOptionPane
-        Product nuevo = ProductDialog.showCreateDialog(parent); // Mostrar el diálogo para agregar un producto
+        Product nuevo = ProductDialog.mostrarDialogoCreacion(parent);
         
         if (nuevo == null) {
-            return; // Si el usuario cancela, se retorna
+            return;
         }
         
         try {
-            // Verificar si ya existe
-            Product existente = productService.findProductByName(nuevo.getNombre());
-            if (existente != null) { // Si el producto ya existe, se pregunta si se desea actualizar o crear uno nuevo
+            Product existente = productService.buscarProductoPorNombre(nuevo.getNombre());
+            if (existente != null) {
                 int respuesta = preguntarActualizarOcrear(nuevo.getNombre(), existente);
-                if (respuesta == 0) { // Si el usuario elige actualizar
-                    // Actualizar existente con los datos del nuevo
+                if (respuesta == 0) {
                     existente.setNombre(nuevo.getNombre());
                     existente.setDescripcion(nuevo.getDescripcion());
                     existente.setPrecio(nuevo.getPrecio());
@@ -69,17 +63,16 @@ public class ProductHandler {
                     actualizarExistente(existente);
                     return;
                 } else if (respuesta == 2) {
-                    return; // Si el usuario cancela, se retorna
+                    return;
                 }
             }
             
-            // Crear nuevo
-            boolean exito = productService.createProduct(nuevo);
+            boolean exito = productService.crearProducto(nuevo);
             
             if (exito) {
-                Product creado = productService.findProductByName(nuevo.getNombre());
-                if (creado != null && creado.isActivo()) { // Si el producto se creó correctamente, se agrega a la tabla
-                    inventoryPanel.addProductRow(creado);
+                Product creado = productService.buscarProductoPorNombre(nuevo.getNombre());
+                if (creado != null && creado.isActivo()) {
+                    inventoryPanel.agregarFilaProducto(creado);
                 }
                 JOptionPane.showMessageDialog(parent, Mensajes.PRODUCTO_AGREGADO, Mensajes.TITULO_EXITO, JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -97,33 +90,32 @@ public class ProductHandler {
             return;
         }
         
-        int fila = inventoryPanel.getSelectedProductRow();
+        int fila = inventoryPanel.obtenerFilaProductoSeleccionada();
         if (fila == -1) {
             JOptionPane.showMessageDialog(parent, Mensajes.SELECCIONAR_PRODUCTO, Mensajes.TITULO_ADVERTENCIA, JOptionPane.WARNING_MESSAGE);
             return;
         }
         
         try { 
-            Integer productId = inventoryPanel.getSelectedProductId();
-            if (productId == null) return; // Si el producto no se selecciona, se retorna
+            Integer productId = inventoryPanel.obtenerIdProductoSeleccionado();
+            if (productId == null) return;
             
-            Product producto = productService.getProductById(productId);
-            if (producto == null) return; // Si el producto no se encuentra, se retorna
+            Product producto = productService.obtenerProductoPorId(productId);
+            if (producto == null) return;
             
-            // Usar diálogo dedicado en lugar de JOptionPane
-            Product editado = ProductDialog.showEditDialog(parent, producto);
+            Product editado = ProductDialog.mostrarDialogoEdicion(parent, producto);
             
             if (editado == null) {
-                return; // Usuario canceló
+                return;
             }
             
-            boolean exito = productService.updateProduct(editado);
+            boolean exito = productService.actualizarProducto(editado);
             if (exito) {
-                Product actualizado = productService.getProductById(productId);
+                Product actualizado = productService.obtenerProductoPorId(productId);
                 if (actualizado != null && actualizado.isActivo()) {
-                    inventoryPanel.updateProductRow(actualizado);
+                    inventoryPanel.actualizarFilaProducto(actualizado);
                 } else {
-                    inventoryPanel.removeProductRow(productId);
+                    inventoryPanel.eliminarFilaProducto(productId);
                 }
                 JOptionPane.showMessageDialog(parent, Mensajes.PRODUCTO_ACTUALIZADO, Mensajes.TITULO_EXITO, JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -141,14 +133,14 @@ public class ProductHandler {
             return;
         }
         
-        int fila = inventoryPanel.getSelectedProductRow();
+        int fila = inventoryPanel.obtenerFilaProductoSeleccionada();
         if (fila == -1) {
             JOptionPane.showMessageDialog(parent, Mensajes.SELECCIONAR_PRODUCTO, Mensajes.TITULO_ADVERTENCIA, JOptionPane.WARNING_MESSAGE);
             return;
         }
         
         try {
-            Integer productId = inventoryPanel.getSelectedProductId();
+            Integer productId = inventoryPanel.obtenerIdProductoSeleccionado();
             if (productId == null) return;
             
             int confirmar = JOptionPane.showConfirmDialog(parent,
@@ -157,9 +149,9 @@ public class ProductHandler {
                 JOptionPane.YES_NO_OPTION);
             
             if (confirmar == JOptionPane.YES_OPTION) {
-                boolean exito = productService.retireProduct(productId);
+                boolean exito = productService.desactivarProducto(productId);
                 if (exito) {
-                    inventoryPanel.removeProductRow(productId);
+                    inventoryPanel.eliminarFilaProducto(productId);
                     JOptionPane.showMessageDialog(parent, Mensajes.PRODUCTO_ELIMINADO, Mensajes.TITULO_EXITO, JOptionPane.INFORMATION_MESSAGE);
                 } else {
                     JOptionPane.showMessageDialog(parent, Mensajes.ERROR_ELIMINAR, Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
@@ -178,7 +170,7 @@ public class ProductHandler {
             "ID: %d\n" +
             "Estado: %s\n" +
             "Stock: %d\n" +
-            "Precio: $%.2f\n\n" +
+            "Precio: S/%.2f\n\n" +
             "¿Qué deseas hacer?",
             nombre, existente.getId(), estado, existente.getStock(), existente.getPrecio()
         );
@@ -190,13 +182,13 @@ public class ProductHandler {
     
     private void actualizarExistente(Product existente) {
         try {
-            boolean exito = productService.updateProduct(existente);
+            boolean exito = productService.actualizarProducto(existente);
             if (exito) {
-                Product actualizado = productService.getProductById(existente.getId());
+                Product actualizado = productService.obtenerProductoPorId(existente.getId());
                 if (actualizado != null && actualizado.isActivo()) {
-                    inventoryPanel.updateProductRow(actualizado);
+                    inventoryPanel.actualizarFilaProducto(actualizado);
                 } else {
-                    inventoryPanel.removeProductRow(existente.getId());
+                    inventoryPanel.eliminarFilaProducto(existente.getId());
                 }
                 JOptionPane.showMessageDialog(parent, Mensajes.PRODUCTO_ACTUALIZADO, Mensajes.TITULO_EXITO, JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -207,9 +199,6 @@ public class ProductHandler {
         }
     }
     
-    /**
-     * Maneja la eliminación de productos vencidos desde el panel de alertas
-     */
     public void eliminarVencidos() {
         if (currentUser.isTrabajador()) {
             JOptionPane.showMessageDialog(parent, Mensajes.SOLO_ADMIN, Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
@@ -218,7 +207,7 @@ public class ProductHandler {
         
         if (alertsPanel == null) return;
         
-        Integer productId = alertsPanel.getSelectedProductId();
+        Integer productId = alertsPanel.obtenerIdProductoSeleccionado();
         
         if (productId != null) {
             eliminarProductoVencidoSeleccionado(productId);
@@ -229,14 +218,14 @@ public class ProductHandler {
     
     private void eliminarProductoVencidoSeleccionado(int productoId) {
         try {
-            Product producto = productService.getProductById(productoId);
+            Product producto = productService.obtenerProductoPorId(productoId);
             if (producto == null) {
                 JOptionPane.showMessageDialog(parent, "Producto no encontrado", Mensajes.TITULO_ERROR, JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
             String nombreProducto = producto.getNombre();
-            long diasRestantes = producto.getDaysUntilExpiration();
+            long diasRestantes = producto.obtenerDiasHastaVencimiento();
             
             int confirmacion = JOptionPane.showConfirmDialog(parent,
                 "¿Retirar este producto del inventario?\n\n" +
@@ -250,7 +239,7 @@ public class ProductHandler {
                 JOptionPane.WARNING_MESSAGE);
             
             if (confirmacion == JOptionPane.YES_OPTION) {
-                boolean exito = productService.retireProduct(productoId);
+                boolean exito = productService.desactivarProducto(productoId);
                 
                 if (exito) {
                     JOptionPane.showMessageDialog(parent,
@@ -277,7 +266,7 @@ public class ProductHandler {
     
     private void eliminarTodosLosVencidos() {
         try {
-            List<Product> productosVencidos = productService.getExpiredProducts();
+            List<Product> productosVencidos = productService.obtenerProductosVencidos();
             int totalVencidos = productosVencidos.size();
             
             if (totalVencidos == 0) {
@@ -299,7 +288,7 @@ public class ProductHandler {
                 JOptionPane.WARNING_MESSAGE);
             
             if (confirmacion == JOptionPane.YES_OPTION) {
-                int rowsUpdated = productService.retireAllExpiredProducts();
+                int rowsUpdated = productService.desactivarProductosVencidos();
                 
                 JOptionPane.showMessageDialog(parent,
                     "Operación completada\n\n" +
@@ -323,7 +312,7 @@ public class ProductHandler {
     
     private void actualizarPaneles() {
         if (alertsPanel != null) alertsPanel.cargarAlertas();
-        if (inventoryPanel != null) inventoryPanel.loadProductsData();
+        if (inventoryPanel != null) inventoryPanel.cargarProductos();
         if (salesPanel != null) salesPanel.cargarCatalogo();
     }
 }

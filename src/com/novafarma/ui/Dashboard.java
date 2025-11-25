@@ -16,127 +16,82 @@ import java.awt.*;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Dashboard principal de la aplicación Nova Farma
- * 
- * CONTROL DE ROLES IMPLEMENTADO:
- * 
- * ROL ADMINISTRADOR:
- * ✓ Puede gestionar productos (INSERT, UPDATE, DELETE)
- * ✓ Puede crear nuevos usuarios
- * ✓ Puede realizar ventas
- * ✓ Puede ver inventario y alertas
- * 
- * ROL TRABAJADOR:
- * ✓ Puede realizar ventas (INSERT en tabla ventas)
- * ✓ Puede ver inventario (SELECT)
- * ✓ Puede ver alertas de vencimiento
- * ✗ NO puede modificar productos
- * ✗ NO puede crear usuarios
- * ✗ NO puede eliminar registros
- * 
- * @author Nova Farma Development Team
- * @version 1.0
- */
+/** Dashboard principal con control de roles (Administrador/Trabajador) */
 public class Dashboard extends JFrame {
     
-    // ==================== ATRIBUTOS ====================
-    
     private User currentUser;
-    
-    // Servicios de lógica de negocio (Arquitectura en capas)
     private ProductService productService;
     private SaleService saleService;
     private UserService userService;
-    
-    // Paneles modulares
     private InventoryPanel inventoryPanel;
     private AlertsPanel alertsPanel;
     private SalesPanel salesPanel;
-    
-    // Handlers para separar lógica
     private ProductHandler productHandler;
     private UserHandler userHandler;
-    
-    // Componentes UI
     private JLabel lblWelcome;
     private JLabel lblRole;
     private JTabbedPane tabbedPane;
     
-    // ==================== CONSTRUCTOR ====================
-    
     public Dashboard(User user) {
         this.currentUser = user;
-        
-        // Inicializar servicios (Arquitectura en capas)
         this.productService = new ProductService();
         this.saleService = new SaleService();
         this.userService = new UserService();
         
-        // Inicializar paneles y handlers
-        initializePanels();
-        initializeHandlers();
+        inicializarPaneles();
+        inicializarManejadores();
         
-        initializeUI();
-        applyRolePermissions();
+        inicializarInterfaz();
+        aplicarPermisosPorRol();
         
-        // Cargar datos iniciales
-        inventoryPanel.loadProductsData();
+        inventoryPanel.cargarProductos();
         salesPanel.cargarCatalogo();
         alertsPanel.cargarAlertas();
     }
     
-    /**
-     * Inicializa los paneles modulares y configura callbacks
-     */
-    private void initializePanels() {
+    private void inicializarPaneles() {
         inventoryPanel = new InventoryPanel(currentUser, productService);
         alertsPanel = new AlertsPanel(currentUser, productService);
         salesPanel = new SalesPanel(currentUser, productService, saleService);
     }
     
-    private void initializeHandlers() {
+    private void inicializarManejadores() {
         productHandler = new ProductHandler(this, currentUser, productService, inventoryPanel);
         productHandler.setAlertsPanel(alertsPanel);
         productHandler.setSalesPanel(salesPanel);
         
         userHandler = new UserHandler(this, currentUser, userService);
         
-        inventoryPanel.setOnAddProduct(() -> productHandler.agregar());
-        inventoryPanel.setOnEditProduct(() -> productHandler.editar());
-        inventoryPanel.setOnDeleteProduct(() -> productHandler.eliminar());
-        inventoryPanel.setOnRefresh(() -> inventoryPanel.loadProductsData());
+        inventoryPanel.setAccionAgregarProducto(() -> productHandler.agregar());
+        inventoryPanel.setAccionEditarProducto(() -> productHandler.editar());
+        inventoryPanel.setAccionEliminarProducto(() -> productHandler.eliminar());
+        inventoryPanel.setAccionRefrescar(() -> inventoryPanel.cargarProductos());
         
-        alertsPanel.setOnEliminarVencidos(() -> productHandler.eliminarVencidos());
+        alertsPanel.setAccionEliminarVencidos(() -> productHandler.eliminarVencidos());
         
-        salesPanel.setOnVentaFinalizada(() -> inventoryPanel.loadProductsData());
+        salesPanel.setOnVentaFinalizada(() -> inventoryPanel.cargarProductos());
     }
     
-    // ==================== INICIALIZACIÓN DE UI ====================
-    
-    private void initializeUI() {
-        // Configuración de la ventana
+    private void inicializarInterfaz() {
         setTitle("Nova Farma - Dashboard");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
-        // Panel superior (Header)
-        JPanel headerPanel = createHeaderPanel();
+        JPanel headerPanel = crearPanelEncabezado();
         add(headerPanel, BorderLayout.NORTH);
         
-        // Panel central (Tabs)
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Arial", Font.BOLD, 14));
         
         tabbedPane.addTab("Inventario", inventoryPanel);
         tabbedPane.addTab("Ventas / Facturación", salesPanel);
         
-        if (currentUser.isAdministrador()) { // Si el usuario es administrador, se muestran los paneles de usuarios y historial de ventas
-            JPanel usersPanel = createUsersPanel(); // Crear el panel de usuarios
+        if (currentUser.isAdministrador()) {
+            JPanel usersPanel = crearPanelUsuarios();
             tabbedPane.addTab("Usuarios", usersPanel);
             
-            JPanel salesHistoryPanel = createSalesHistoryPanel();
+            JPanel salesHistoryPanel = crearPanelHistorialVentas();
             tabbedPane.addTab("Historial de Ventas", salesHistoryPanel);
         }
         
@@ -144,14 +99,11 @@ public class Dashboard extends JFrame {
         
         add(tabbedPane, BorderLayout.CENTER);
         
-        // Panel inferior (Footer)
-        JPanel footerPanel = createFooterPanel();
+        JPanel footerPanel = crearPanelPie();
         add(footerPanel, BorderLayout.SOUTH);
     }
     
-    // ==================== PANEL DE ENCABEZADO ====================
-    
-    private JPanel createHeaderPanel() {
+    private JPanel crearPanelEncabezado() {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.setPreferredSize(new Dimension(1000, 80));
@@ -160,7 +112,6 @@ public class Dashboard extends JFrame {
             BorderFactory.createEmptyBorder(15, 20, 15, 20)
         ));
         
-        // Lado izquierdo: Bienvenida
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setOpaque(false);
@@ -175,11 +126,10 @@ public class Dashboard extends JFrame {
         leftPanel.add(Box.createVerticalStrut(5));
         leftPanel.add(lblRole);
         
-        // Lado derecho: Botón de cerrar sesión
         JButton btnLogout = new JButton("Cerrar Sesión");
         btnLogout.setFont(new Font("Arial", Font.PLAIN, 12));
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogout.addActionListener(e -> logout());
+        btnLogout.addActionListener(e -> cerrarSesion());
         
         panel.add(leftPanel, BorderLayout.WEST);
         panel.add(btnLogout, BorderLayout.EAST);
@@ -187,17 +137,13 @@ public class Dashboard extends JFrame {
         return panel;
     }
     
-    
-    // ==================== PANEL DE USUARIOS ====================
-    
     private JTable usersTable;
     private DefaultTableModel usersTableModel;
     
-    private JPanel createUsersPanel() {
+private JPanel crearPanelUsuarios() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         
-        // Panel de botones
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         
         JButton btnCreateUser = new JButton("Crear Usuario");
@@ -218,12 +164,11 @@ public class Dashboard extends JFrame {
         
         panel.add(btnPanel, BorderLayout.NORTH);
         
-        // Tabla de usuarios
         String[] columnNames = {"ID", "Usuario", "Rol", "Ventas Registradas"};
         usersTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Tabla no editable
+                return false;
             }
         };
         
@@ -234,7 +179,6 @@ public class Dashboard extends JFrame {
         usersTable.setFont(new Font("Arial", Font.PLAIN, 12));
         usersTable.setFillsViewportHeight(true);
         
-        // Ajustar ancho de columnas
         usersTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         usersTable.getColumnModel().getColumn(1).setPreferredWidth(200);
         usersTable.getColumnModel().getColumn(2).setPreferredWidth(150);
@@ -245,10 +189,7 @@ public class Dashboard extends JFrame {
         
         panel.add(scrollPane, BorderLayout.CENTER);
         
-        // Panel inferior: Paginación e información
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
-        
-        // Panel de paginación
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         paginationPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
         
@@ -275,7 +216,6 @@ public class Dashboard extends JFrame {
         
         bottomPanel.add(paginationPanel, BorderLayout.NORTH);
         
-        // Información
         JLabel lblInfo = new JLabel(
             "<html><body style='padding: 10px;'>" +
             "<b>Nota:</b> Solo se pueden eliminar usuarios que NO tengan ventas registradas.<br>" +
@@ -289,41 +229,31 @@ public class Dashboard extends JFrame {
         
         panel.add(bottomPanel, BorderLayout.SOUTH);
         
-        // Pasar la tabla y controles de paginación al handler
         userHandler.setTable(usersTable, usersTableModel);
         userHandler.setPaginationControls(btnFirstPage, btnPrevPage, btnNextPage, btnLastPage, lblPageInfo);
-        
-        // Cargar datos iniciales
         userHandler.cargarDatos();
         
         return panel;
     }
     
-    // ==================== PANEL DE HISTORIAL DE VENTAS ====================
-    
-    /**
-     * Crea el panel para ver el historial de ventas (solo administradores)
-     */
-    private JPanel createSalesHistoryPanel() {
+    private JPanel crearPanelHistorialVentas() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Panel superior: Botón de actualizar
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         
         JButton btnRefresh = new JButton("Actualizar");
         styleButton(btnRefresh);
-        btnRefresh.addActionListener(e -> loadSalesHistory());
+        btnRefresh.addActionListener(e -> cargarHistorialVentas());
         
         btnPanel.add(btnRefresh);
         panel.add(btnPanel, BorderLayout.NORTH);
         
-        // Tabla de ventas
         String[] columnNames = {"ID", "Producto ID", "Usuario ID", "Cantidad", "Precio Unit.", "Total", "Fecha Venta"};
-        DefaultTableModel salesTableModel = new DefaultTableModel(columnNames, 0) {
+        DefaultTableModel         salesTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Tabla solo lectura
+                return false;
             }
         };
         
@@ -334,7 +264,6 @@ public class Dashboard extends JFrame {
         salesTable.setFont(new Font("Arial", Font.PLAIN, 12));
         salesTable.setFillsViewportHeight(true);
         
-        // Ajustar ancho de columnas
         salesTable.getColumnModel().getColumn(0).setPreferredWidth(50);
         salesTable.getColumnModel().getColumn(1).setPreferredWidth(100);
         salesTable.getColumnModel().getColumn(2).setPreferredWidth(100);
@@ -343,7 +272,6 @@ public class Dashboard extends JFrame {
         salesTable.getColumnModel().getColumn(5).setPreferredWidth(100);
         salesTable.getColumnModel().getColumn(6).setPreferredWidth(180);
         
-        // Aplicar estilo de tabla
         com.novafarma.util.TableStyleHelper.applyTableStyle(salesTable);
         
         JScrollPane scrollPane = new JScrollPane(salesTable);
@@ -351,7 +279,6 @@ public class Dashboard extends JFrame {
         
         panel.add(scrollPane, BorderLayout.CENTER);
         
-        // Panel inferior: Información
         JLabel lblInfo = new JLabel(
             "<html><body style='padding: 10px;'>" +
             "<b>Nota:</b> Este historial muestra todas las ventas realizadas en el negocio.<br>" +
@@ -363,38 +290,29 @@ public class Dashboard extends JFrame {
         
         panel.add(lblInfo, BorderLayout.SOUTH);
         
-        // Guardar referencia a la tabla para poder actualizarla
         panel.putClientProperty("salesTable", salesTable);
         panel.putClientProperty("salesTableModel", salesTableModel);
         
-        // Cargar datos iniciales
-        loadSalesHistory(panel);
+        cargarHistorialVentas(panel);
         
         return panel;
     }
     
-    /**
-     * Carga el historial de ventas en el panel
-     */
-    private void loadSalesHistory() {
-        // Buscar el panel de historial de ventas
+    private void cargarHistorialVentas() {
         for (int i = 0; i < tabbedPane.getTabCount(); i++) {
             Component comp = tabbedPane.getComponentAt(i);
             if (comp instanceof JPanel) {
                 JPanel panel = (JPanel) comp;
                 JTable table = (JTable) panel.getClientProperty("salesTable");
                 if (table != null) {
-                    loadSalesHistory(panel);
+                    cargarHistorialVentas(panel);
                     break;
                 }
             }
         }
     }
     
-    /**
-     * Carga el historial de ventas en un panel específico
-     */
-    private void loadSalesHistory(JPanel panel) {
+    private void cargarHistorialVentas(JPanel panel) {
         JTable salesTable = (JTable) panel.getClientProperty("salesTable");
         DefaultTableModel salesTableModel = (DefaultTableModel) panel.getClientProperty("salesTableModel");
         
@@ -403,7 +321,7 @@ public class Dashboard extends JFrame {
         try {
             salesTableModel.setRowCount(0);
             
-            List<com.novafarma.model.Sale> ventas = saleService.getAllSales();
+            List<com.novafarma.model.Sale> ventas = saleService.obtenerTodasLasVentas();
             
             for (com.novafarma.model.Sale venta : ventas) {
                 Object[] fila = {
@@ -411,8 +329,8 @@ public class Dashboard extends JFrame {
                     venta.getProductoId(),
                     venta.getUsuarioId(),
                     venta.getCantidad(),
-                    String.format("$%.2f", venta.getPrecioUnitario()),
-                    String.format("$%.2f", venta.getTotal()),
+                    String.format("S/%.2f", venta.getPrecioUnitario()),
+                    String.format("S/%.2f", venta.getTotal()),
                     formatFecha(venta.getFechaVenta())
                 };
                 salesTableModel.addRow(fila);
@@ -426,19 +344,13 @@ public class Dashboard extends JFrame {
         }
     }
     
-    /**
-     * Formatea la fecha de venta para mostrar
-     */
     private String formatFecha(java.sql.Timestamp fecha) {
         if (fecha == null) return "N/A";
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(fecha);
     }
     
-    
-    // ==================== PANEL DE PIE ====================
-    
-    private JPanel createFooterPanel() {
+    private JPanel crearPanelPie() {
         JPanel panel = new JPanel();
         panel.setPreferredSize(new Dimension(1000, 30));
         panel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
@@ -451,24 +363,12 @@ public class Dashboard extends JFrame {
         return panel;
     }
     
-    // ==================== CONTROL DE PERMISOS POR ROL ====================
-    
-    /**
-     * Aplica permisos basados en el rol del usuario
-     * Delega a los paneles modulares
-     */
-    private void applyRolePermissions() {
-        // Aplicar permisos a paneles modulares
-        inventoryPanel.applyRolePermissions();
-        alertsPanel.applyRolePermissions();
-        
-        // Nota: El módulo de ventas (POS) está disponible para todos los roles
-        // Los trabajadores pueden vender, pero no pueden modificar productos
+    private void aplicarPermisosPorRol() {
+        inventoryPanel.aplicarPermisosPorRol();
+        alertsPanel.aplicarPermisosPorRol();
     }
     
-    // ==================== MÉTODOS DE ACCIÓN ====================
-    
-    private void logout() {
+    private void cerrarSesion() {
         int confirm = JOptionPane.showConfirmDialog(this,
             "¿Deseas cerrar sesión?",
             "Confirmar Cierre de Sesión",
@@ -483,14 +383,6 @@ public class Dashboard extends JFrame {
         }
     }
     
-    // ==================== MÉTODOS AUXILIARES ====================
-    
-    /**
-     * Aplica el estilo estándar a los botones de la aplicación.
-     * Usa Look & Feel por defecto de Swing sin personalizaciones.
-     * 
-     * @param button El botón a estilizar
-     */
     private void styleButton(JButton button) {
         button.setFont(new Font("Arial", Font.PLAIN, 12));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));

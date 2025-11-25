@@ -43,26 +43,10 @@ public class MainApp {
             e.printStackTrace();
         }
         
-        // Mostrar información de inicio
-        System.out.println("╔══════════════════════════════════════════╗");
-        System.out.println("║     NOVA FARMA - Sistema de Gestión      ║");
-        System.out.println("║      Aplicación de Escritorio v1.0       ║");
-        System.out.println("╚══════════════════════════════════════════╝");
-        System.out.println();
-        System.out.println("Características de Seguridad:");
-        System.out.println("✓ Contraseñas encriptadas con SHA-256");
-        System.out.println("✓ Control de roles (Administrador/Trabajador)");
-        System.out.println("✓ Recuperación de contraseña");
-        System.out.println();
-        System.out.println("Iniciando aplicación...");
-        System.out.println();
-        
-        // Ejecutar la aplicación en el Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             try {
                 LoginFrame loginFrame = new LoginFrame();
                 loginFrame.setVisible(true);
-                System.out.println("✓ Ventana de login inicializada correctamente");
             } catch (Exception e) {
                 System.err.println("ERROR al iniciar la aplicación:");
                 e.printStackTrace();

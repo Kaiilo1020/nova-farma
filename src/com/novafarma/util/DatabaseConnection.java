@@ -55,8 +55,6 @@ public class DatabaseConnection {
                     DatabaseConfig.DB_USER,
                     DatabaseConfig.DB_PASSWORD
                 );
-                
-                System.out.println("✓ Conexión establecida con PostgreSQL");
             }
             
             return connection;
@@ -77,7 +75,7 @@ public class DatabaseConnection {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                System.out.println("✓ Conexión cerrada correctamente");
+                System.out.println("Conexion cerrada correctamente");
             }
         } catch (SQLException e) {
             System.err.println("Error al cerrar la conexión: " + e.getMessage());

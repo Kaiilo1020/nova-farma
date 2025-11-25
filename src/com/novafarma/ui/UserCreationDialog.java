@@ -30,10 +30,10 @@ public class UserCreationDialog extends JDialog {
     
     public UserCreationDialog(Frame parent) {
         super(parent, "Crear Nuevo Usuario", true);
-        initializeUI();
+        inicializarInterfaz();
     }
     
-    private void initializeUI() {
+    private void inicializarInterfaz() {
         setSize(400, 350);
         setLocationRelativeTo(getParent());
         setResizable(false);
@@ -96,7 +96,7 @@ public class UserCreationDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         
         btnCreate = new JButton("Crear Usuario");
-        btnCreate.addActionListener(e -> createUser());
+        btnCreate.addActionListener(e -> crearUsuario());
         
         btnCancel = new JButton("Cancelar");
         btnCancel.addActionListener(e -> dispose());
@@ -115,7 +115,7 @@ public class UserCreationDialog extends JDialog {
      * 2. Encriptar contraseña con SHA-256
      * 3. Insertar en la tabla usuarios
      */
-    private void createUser() {
+    private void crearUsuario() {
         String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
         String confirmPassword = new String(txtConfirmPassword.getPassword());

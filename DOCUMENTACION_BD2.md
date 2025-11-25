@@ -118,7 +118,34 @@ consultaPreparada.executeUpdate();
 -- Leer todos los productos activos
 SELECT * FROM productos WHERE activo = true;
 
--- Leer con JOIN (relación entre tablas)
+-- Leer con JOIN (relación entre tablas) 
+/*
+Este bloque SQL muestra cómo consultar información de ventas uniendo varias tablas para obtener detalles más completos. Específicamente:
+
+SELECT v.id, p.nombre, u.username, v.cantidad, v.total, v.fecha_venta
+FROM ventas v
+JOIN productos p ON v.producto_id = p.id
+JOIN usuarios u ON v.usuario_id = u.id
+ORDER BY v.fecha_venta DESC;
+
+Explicación:
+- Se seleccionan columnas de la venta (`v.id`, `v.cantidad`, `v.total`, `v.fecha_venta`), el nombre del producto (`p.nombre`) y el usuario que realizó la venta (`u.username`).
+- La tabla `ventas` se referencia como `v`, `productos` como `p` y `usuarios` como `u`.
+- `JOIN productos p ON v.producto_id = p.id` une cada venta con su producto correspondiente usando la clave foránea `producto_id`.
+- `JOIN usuarios u ON v.usuario_id = u.id` une cada venta con el usuario que la realizó.
+- `ORDER BY v.fecha_venta DESC` ordena los resultados de manera que las ventas más recientes aparecen primero.
+
+¿Para qué sirve?
+Permite obtener un reporte detallado de las ventas, mostrando:
+- Qué producto se vendió (`p.nombre`)
+- Quién lo vendió (`u.username`)
+- Cuántas unidades (`v.cantidad`)
+- Cuándo se vendió (`v.fecha_venta`)
+- Cuál fue el importe total de la venta (`v.total`)
+
+Este tipo de consultas JOIN es fundamental para explotar y analizar la información relacionada en bases de datos relacionales.
+*/
+
 SELECT v.id, p.nombre, u.username, v.cantidad, v.total, v.fecha_venta
 FROM ventas v
 JOIN productos p ON v.producto_id = p.id

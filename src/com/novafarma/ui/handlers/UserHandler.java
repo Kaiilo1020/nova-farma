@@ -12,10 +12,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Maneja las operaciones de usuarios (crear, eliminar, cargar tabla)
- * Separa esta lógica del Dashboard para que sea más simple
- */
+/** Maneja operaciones de usuarios (crear, eliminar, cargar tabla) */
 public class UserHandler {
     
     private JFrame parent;
@@ -24,14 +21,12 @@ public class UserHandler {
     private JTable usersTable;
     private DefaultTableModel usersTableModel;
     
-    // Paginación
     private static final int PAGE_SIZE = PaginationHelper.DEFAULT_PAGE_SIZE;
     private static final int PAGINATION_THRESHOLD = 100;
     private int currentPage = 1;
     private int totalRecords = 0;
     private boolean paginationEnabled = false;
     
-    // Controles de paginación (se pasan desde Dashboard)
     private JButton btnFirstPage;
     private JButton btnPrevPage;
     private JButton btnNextPage;
@@ -65,7 +60,7 @@ public class UserHandler {
     public void cargarDatos() {
         try {
             // Contar total de usuarios
-            int totalUsuarios = userService.countAllUsers();
+            int totalUsuarios = userService.contarUsuarios();
             
             // Activar paginación si hay muchos registros
             if (totalUsuarios > PAGINATION_THRESHOLD) {
@@ -77,7 +72,7 @@ public class UserHandler {
                 cargarDatosCompleto();
             }
             
-            updatePaginationControls();
+            actualizarControlesPaginacion();
             
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(parent,
@@ -91,8 +86,8 @@ public class UserHandler {
         try {
             usersTableModel.setRowCount(0);
             
-            List<User> usuarios = userService.getAllUsers();
-            Map<Integer, Integer> ventasPorUsuario = userService.getAllUsersSalesCount();
+            List<User> usuarios = userService.obtenerTodosLosUsuarios();
+            Map<Integer, Integer> ventasPorUsuario = userService.obtenerUsuariosConVentas();
             
             for (User usuario : usuarios) {
                 int ventas = ventasPorUsuario.getOrDefault(usuario.getId(), 0);
@@ -115,8 +110,8 @@ public class UserHandler {
             usersTableModel.setRowCount(0);
             
             int offset = PaginationHelper.calculateOffset(currentPage, PAGE_SIZE);
-            List<User> usuarios = userService.getUsersPaginated(PAGE_SIZE, offset);
-            Map<Integer, Integer> ventasPorUsuario = userService.getAllUsersSalesCount();
+            List<User> usuarios = userService.obtenerUsuariosPaginados(PAGE_SIZE, offset);
+            Map<Integer, Integer> ventasPorUsuario = userService.obtenerUsuariosConVentas();
             
             for (User usuario : usuarios) {
                 int ventas = ventasPorUsuario.getOrDefault(usuario.getId(), 0);
@@ -134,7 +129,7 @@ public class UserHandler {
         }
     }
     
-    private void updatePaginationControls() {
+    private void actualizarControlesPaginacion() {
         if (lblPageInfo == null) return;
         
         if (!paginationEnabled) {
@@ -161,14 +156,14 @@ public class UserHandler {
     private void goToFirstPage() {
         currentPage = 1;
         cargarDatosPaginated();
-        updatePaginationControls();
+        actualizarControlesPaginacion();
     }
     
     private void goToPreviousPage() {
         if (currentPage > 1) {
             currentPage--;
             cargarDatosPaginated();
-            updatePaginationControls();
+            actualizarControlesPaginacion();
         }
     }
     
@@ -177,7 +172,7 @@ public class UserHandler {
         if (currentPage < totalPaginas) {
             currentPage++;
             cargarDatosPaginated();
-            updatePaginationControls();
+            actualizarControlesPaginacion();
         }
     }
     
@@ -185,7 +180,7 @@ public class UserHandler {
         int totalPaginas = PaginationHelper.calculateTotalPages(totalRecords, PAGE_SIZE);
         currentPage = totalPaginas;
         cargarDatosPaginated();
-        updatePaginationControls();
+        actualizarControlesPaginacion();
     }
     
     public void crear() {
@@ -229,7 +224,7 @@ public class UserHandler {
         
         if (confirmar == JOptionPane.YES_OPTION) {
             try {
-                UserService.DeleteUserResult resultado = userService.deleteUser(userId);
+                UserService.DeleteUserResult resultado = userService.eliminarUsuario(userId);
                 
                 if (resultado.isSuccess()) {
                     eliminarFila(userId);
