@@ -16,23 +16,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
-/**
- * Panel de Inventario - Muestra y gestiona productos
- * 
- * RESPONSABILIDADES:
- * - Mostrar tabla de productos activos
- * - Búsqueda en tiempo real (TableRowSorter)
- * - Renderizado de alertas visuales (colores por vencimiento)
- * - Botones de CRUD (delega acciones a Dashboard)
- * 
- * ARQUITECTURA:
- * - Usa ProductService para obtener datos (sin SQL directo)
- * - UI separada de la lógica de negocio
- * - Callbacks para acciones (addProduct, editProduct, deleteProduct)
- * 
- * @author Nova Farma Development Team
- * @version 2.0 (Refactorizado con Arquitectura en Capas)
- */
+
 public class InventoryPanel extends JPanel {
     
     // Servicios
