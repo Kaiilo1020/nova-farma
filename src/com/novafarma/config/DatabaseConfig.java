@@ -29,7 +29,7 @@ public class DatabaseConfig {
     /** Usuario de PostgreSQL */
     public static final String DB_USER = "postgres";
     
-    /** Contraseña de PostgreSQL (CAMBIAR según tu instalación) */
+    /** Contraseña de PostgreSQL */
     public static final String DB_PASSWORD = "postgres";
     
     // ==================== URL DE CONEXIÓN ====================

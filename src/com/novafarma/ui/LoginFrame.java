@@ -49,7 +49,7 @@ public class LoginFrame extends JFrame {
         };
         mainPanel.setLayout(null);
         
-        JLabel lblLogo = new JLabel("🏥 NOVA FARMA", SwingConstants.CENTER);
+        JLabel lblLogo = new JLabel("NOVA FARMA", SwingConstants.CENTER);
         lblLogo.setFont(new Font("Arial", Font.BOLD, 28));
         lblLogo.setForeground(Color.WHITE);
         lblLogo.setBounds(50, 20, 350, 40);

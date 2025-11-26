@@ -7,6 +7,7 @@ import com.novafarma.service.UserService;
 import com.novafarma.ui.panels.InventoryPanel;
 import com.novafarma.ui.panels.AlertsPanel;
 import com.novafarma.ui.panels.SalesPanel;
+import com.novafarma.ui.panels.DailySalesReportPanel;
 import com.novafarma.ui.handlers.ProductHandler;
 import com.novafarma.ui.handlers.UserHandler;
 
@@ -26,6 +27,7 @@ public class Dashboard extends JFrame {
     private InventoryPanel inventoryPanel;
     private AlertsPanel alertsPanel;
     private SalesPanel salesPanel;
+    private DailySalesReportPanel dailySalesReportPanel;
     private ProductHandler productHandler;
     private UserHandler userHandler;
     private JLabel lblWelcome;
@@ -53,6 +55,7 @@ public class Dashboard extends JFrame {
         inventoryPanel = new InventoryPanel(currentUser, productService);
         alertsPanel = new AlertsPanel(currentUser, productService);
         salesPanel = new SalesPanel(currentUser, productService, saleService);
+        dailySalesReportPanel = new DailySalesReportPanel(currentUser, saleService);
     }
     
     private void inicializarManejadores() {
@@ -69,7 +72,12 @@ public class Dashboard extends JFrame {
         
         alertsPanel.setAccionEliminarVencidos(() -> productHandler.eliminarVencidos());
         
-        salesPanel.setOnVentaFinalizada(() -> inventoryPanel.cargarProductos());
+        salesPanel.setOnVentaFinalizada(() -> {
+            inventoryPanel.cargarProductos();
+            if (currentUser.isAdministrador()) {
+                dailySalesReportPanel.cargarReporteDelDia();
+            }
+        });
     }
     
     private void inicializarInterfaz() {
@@ -93,6 +101,8 @@ public class Dashboard extends JFrame {
             
             JPanel salesHistoryPanel = crearPanelHistorialVentas();
             tabbedPane.addTab("Historial de Ventas", salesHistoryPanel);
+            
+            tabbedPane.addTab("Reporte Diario", dailySalesReportPanel);
         }
         
         tabbedPane.addTab("Alertas", alertsPanel);
@@ -355,7 +365,7 @@ private JPanel crearPanelUsuarios() {
         panel.setPreferredSize(new Dimension(1000, 30));
         panel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
         
-        JLabel lblFooter = new JLabel("Nova Farma © 2024 - Sistema de Gestión Farmacéutica");
+        JLabel lblFooter = new JLabel("Nova Farma © 2025 - Sistema de Gestión Farmacéutica");
         lblFooter.setFont(new Font("Arial", Font.PLAIN, 10));
         
         panel.add(lblFooter);
@@ -366,6 +376,9 @@ private JPanel crearPanelUsuarios() {
     private void aplicarPermisosPorRol() {
         inventoryPanel.aplicarPermisosPorRol();
         alertsPanel.aplicarPermisosPorRol();
+        if (dailySalesReportPanel != null) {
+            dailySalesReportPanel.aplicarPermisosPorRol();
+        }
     }
     
     private void cerrarSesion() {

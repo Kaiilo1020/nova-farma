@@ -28,7 +28,7 @@ public class ProductDAO {
         return productos;
     }
     
-    /** Obtiene productos activos con paginación */
+    //** Obtiene productos activos con paginación */
     public List<Product> obtenerProductosActivos(int limit, int offset) throws SQLException {
         List<Product> productos = new ArrayList<>();
         String consultaSQL = "SELECT id, nombre, descripcion, precio, stock, fecha_vencimiento, activo " +

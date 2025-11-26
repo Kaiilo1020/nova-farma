@@ -275,5 +275,20 @@ public class SaleService {
             this.errors = errors;
         }
     }
+    
+    /** Obtiene todas las ventas del día actual */
+    public List<Sale> obtenerVentasDelDiaActual() throws SQLException {
+        return saleDAO.obtenerVentasDelDiaActual();
+    }
+    
+    /** Obtiene resumen de ventas del día por trabajador */
+    public List<SaleDAO.ReporteVentasPorTrabajador> obtenerResumenVentasPorTrabajador() throws SQLException {
+        return saleDAO.obtenerResumenVentasPorTrabajador();
+    }
+    
+    /** Obtiene el resumen total del día */
+    public SaleDAO.ResumenTotalDelDia obtenerResumenTotalDelDia() throws SQLException {
+        return saleDAO.obtenerResumenTotalDelDia();
+    }
 }
 
